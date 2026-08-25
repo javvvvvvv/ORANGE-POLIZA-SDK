@@ -155,3 +155,124 @@ def suscripcion_vencida():
     if "usuario_id" not in session:
         return redirect(url_for("auth.login"))
     return render_template("suscripcion_vencida.html")
+
+
+@auth_bp.route("/login/google")
+def login_google():
+    oauth.init_app(current_app)
+    if not oauth.create_client('google'):
+        oauth.register(
+            name='google',
+            client_id=os.environ.get('GOOGLE_CLIENT_ID', 'mock_client_id'),
+            client_secret=os.environ.get('GOOGLE_CLIENT_SECRET', 'mock_client_secret'),
+            server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+            client_kwargs={'scope': 'openid email profile'}
+        )
+    redirect_uri = url_for('auth.google_autorizado', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+@auth_bp.route("/login/google/autorizado")
+def google_autorizado():
+    oauth.init_app(current_app)
+    if not oauth.create_client('google'):
+        oauth.register(
+            name='google',
+            client_id=os.environ.get('GOOGLE_CLIENT_ID', 'mock_client_id'),
+            client_secret=os.environ.get('GOOGLE_CLIENT_SECRET', 'mock_client_secret'),
+            server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+            client_kwargs={'scope': 'openid email profile'}
+        )
+        
+    try:
+        token = oauth.google.authorize_access_token()
+        user_info = token.get('userinfo')
+        if not user_info:
+            flash("No se pudo obtener información de Google.", "error")
+            return redirect(url_for('auth.login'))
+            
+        correo = user_info.get('email', '').strip().lower()
+        
+        
+             
+        con = get_connection()
+        usuario = con.execute("SELECT * FROM usuarios WHERE correo = ? OR usuario = ? LIMIT 1", (correo, correo)).fetchone()
+        
+        if usuario:
+            if usuario["activo"] != 1:
+                flash("Tu cuenta está desactivada. Contacta a tu administrador.", "error")
+                return redirect(url_for("auth.login"))
+                
+            session.clear()
+            session["usuario_id"] = usuario["id"]
+            session["rol_global"] = usuario["rol_global"]
+            session["organizacion_id"] = usuario["organizacion_id"]
+            return redirect(url_for("empresas.selector_empresas"))
+        else:
+            flash(f"El correo {correo} no está registrado en ningún despacho. Pide a tu administrador que te invite primero.", "error")
+            return redirect(url_for("auth.login"))
+            
+    except Exception as e:
+        flash("Modo de prueba (Mock): Si no has configurado tus Google Keys, el SSO simulado fallará al verificar el token real.", "error")
+        
+        
+        return redirect(url_for("auth.login"))
+
+@auth_bp.route("/login/microsoft")
+def login_microsoft():
+    oauth.init_app(current_app)
+    if not oauth.create_client('microsoft'):
+        oauth.register(
+            name='microsoft',
+            client_id=os.environ.get('MS_CLIENT_ID', 'mock_ms_id'),
+            client_secret=os.environ.get('MS_CLIENT_SECRET', 'mock_ms_secret'),
+            server_metadata_url='https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
+            client_kwargs={'scope': 'openid email profile'}
+        )
+    redirect_uri = url_for('auth.microsoft_autorizado', _external=True)
+    return oauth.microsoft.authorize_redirect(redirect_uri)
+
+@auth_bp.route("/login/microsoft/autorizado")
+def microsoft_autorizado():
+    oauth.init_app(current_app)
+    if not oauth.create_client('microsoft'):
+        oauth.register(
+            name='microsoft',
+            client_id=os.environ.get('MS_CLIENT_ID', 'mock_ms_id'),
+            client_secret=os.environ.get('MS_CLIENT_SECRET', 'mock_ms_secret'),
+            server_metadata_url='https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
+            client_kwargs={'scope': 'openid email profile'}
+        )
+        
+    try:
+        token = oauth.microsoft.authorize_access_token()
+        user_info = token.get('userinfo')
+        if not user_info:
+            flash("No se pudo obtener información de Microsoft.", "error")
+            return redirect(url_for('auth.login'))
+            
+        correo = user_info.get('email', '').strip().lower()
+        if not correo:
+            correo = user_info.get('preferred_username', '').strip().lower()
+            
+        
+             
+        con = get_connection()
+        usuario = con.execute("SELECT * FROM usuarios WHERE correo = ? OR usuario = ? LIMIT 1", (correo, correo)).fetchone()
+        
+        if usuario:
+            if usuario["activo"] != 1:
+                flash("Tu cuenta está desactivada.", "error")
+                return redirect(url_for("auth.login"))
+            session.clear()
+            session["usuario_id"] = usuario["id"]
+            session["rol_global"] = usuario["rol_global"]
+            session["organizacion_id"] = usuario["organizacion_id"]
+            return redirect(url_for("empresas.selector_empresas"))
+        else:
+            flash(f"El correo {correo} no está registrado en ningún despacho.", "error")
+            return redirect(url_for("auth.login"))
+            
+    except Exception as e:
+        flash("Modo de prueba (Mock MS): Las llaves de Microsoft no están configuradas.", "error")
+        
+        return redirect(url_for("auth.login"))

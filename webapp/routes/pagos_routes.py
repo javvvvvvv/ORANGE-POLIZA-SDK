@@ -28,12 +28,6 @@ def crear_checkout():
     org_id = usr['organizacion_id']
     domain_url = request.host_url.rstrip('/')
     
-    if stripe.api_key == "sk_test_mock_secret":
-        # Modo opcional/simulado: Otorga vigencia instantáneamente sin llamar a Stripe
-        _acreditar_pago(org_id)
-        flash('¡Modo de prueba! Se ha renovado tu suscripción por 30 días automáticamente.', 'success')
-        return redirect(url_for('empresas.selector_empresas'))
-        
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -64,12 +58,6 @@ def stripe_webhook():
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')
     
-    if stripe.api_key == "sk_test_mock_secret":
-        # Modo opcional/simulado: Otorga vigencia instantáneamente sin llamar a Stripe
-        _acreditar_pago(org_id)
-        flash('¡Modo de prueba! Se ha renovado tu suscripción por 30 días automáticamente.', 'success')
-        return redirect(url_for('empresas.selector_empresas'))
-        
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, STRIPE_WEBHOOK_SECRET
@@ -88,12 +76,6 @@ def stripe_webhook():
 
 def _acreditar_pago(org_id):
     con = get_connection()
-    if stripe.api_key == "sk_test_mock_secret":
-        # Modo opcional/simulado: Otorga vigencia instantáneamente sin llamar a Stripe
-        _acreditar_pago(org_id)
-        flash('¡Modo de prueba! Se ha renovado tu suscripción por 30 días automáticamente.', 'success')
-        return redirect(url_for('empresas.selector_empresas'))
-        
     try:
         con.execute(
             '''UPDATE organizaciones 

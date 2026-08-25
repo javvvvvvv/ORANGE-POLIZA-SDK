@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     organizacion_id INTEGER NOT NULL REFERENCES organizaciones(id) ON DELETE CASCADE,
     nombre          TEXT NOT NULL,
     usuario         TEXT NOT NULL UNIQUE,   -- nombre de usuario para iniciar sesión (no correo)
-    correo          TEXT,                   -- opcional, solo dato de contacto
-    password_hash   TEXT NOT NULL,
+    correo          TEXT UNIQUE,            -- requerido para sso, unique
+    password_hash   TEXT,
     rol_global      TEXT NOT NULL DEFAULT 'usuario', -- 'admin' | 'usuario'
     activo          INTEGER NOT NULL DEFAULT 1,
     creado_en       TEXT NOT NULL DEFAULT (NOW()::text)

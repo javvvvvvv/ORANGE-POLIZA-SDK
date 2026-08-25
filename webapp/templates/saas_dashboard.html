@@ -36,7 +36,7 @@
             <td class="px-5 py-3 text-slate-400">#{{ o.id }}</td>
             <td class="px-5 py-3 font-medium text-slate-800">
               {{ o.nombre }}
-              <div class="text-xs text-slate-400 font-normal">{{ o.num_usuarios }} usuarios, {{ o.num_empresas }} empresas</div>
+              <div class="text-xs text-slate-400 font-normal">{{ o.num_usuarios }}/{{ o.limite_usuarios }} usuarios, {{ o.num_empresas }} empresas</div>
             </td>
             <td class="px-5 py-3">
               {% if o.estado_suscripcion == 'activa' %}
