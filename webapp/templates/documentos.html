@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titulo %}Documentos importados{% endblock %}
+{% block contenido %}
+<h1 class="text-xl font-semibold text-marino-900 mb-6">Documentos importados</h1>
+
+<div class="bg-white border border-slate-200 rounded-xl overflow-hidden overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+        <th class="px-5 py-2">Archivo</th>
+        <th class="px-5 py-2">Banco</th>
+        <th class="px-5 py-2">Importado</th>
+        <th class="px-5 py-2">Movimientos</th>
+        <th class="px-5 py-2">Con póliza</th>
+        <th class="px-5 py-2"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in documentos %}
+      <tr class="border-b border-slate-100 last:border-0">
+        <td class="px-5 py-3">{{ d.nombre_archivo }}</td>
+        <td class="px-5 py-3 text-slate-500">{{ d.banco_nombre or '—' }}</td>
+        <td class="px-5 py-3 text-slate-500">{{ d.importado_en }}</td>
+        <td class="px-5 py-3">{{ d.total_movimientos }}</td>
+        <td class="px-5 py-3">{{ d.con_poliza }}</td>
+        <td class="px-5 py-3 text-right">
+          <a href="/empresas/{{ request.view_args.empresa_id }}/documentos/{{ d.id }}/marcado" class="text-naranja-600 hover:underline text-xs">
+            Descargar estado marcado
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="px-5 py-8 text-center text-slate-400">Todavía no se ha importado ningún documento.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

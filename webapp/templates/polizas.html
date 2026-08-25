@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titulo %}Pólizas{% endblock %}
+{% block contenido %}
+<h1 class="text-xl font-semibold text-marino-900 mb-6">Pólizas generadas</h1>
+
+<div class="space-y-3">
+  {% for p in polizas %}
+  <div class="bg-white border border-slate-200 rounded-xl p-5">
+    <div class="flex items-start justify-between cursor-pointer" onclick="document.getElementById('detalle-{{ p.id }}').classList.toggle('hidden')">
+      <div>
+        <div class="font-medium text-marino-900">
+          {{ 'Ingreso' if p.tipo == 'ingreso' else 'Egreso' }} #{{ p.numero }}
+          <span class="text-slate-400 font-normal">· {{ p.fecha }}</span>
+        </div>
+        <div class="text-sm text-slate-500 mt-1">{{ p.descripcion_movimiento }}</div>
+      </div>
+      <div class="text-xs {{ 'text-emerald-600' if p.cuadrada else 'text-red-600' }} font-medium">
+        {{ 'Cuadrada' if p.cuadrada else 'NO cuadrada' }}
+      </div>
+    </div>
+
+    <div id="detalle-{{ p.id }}" class="hidden mt-4 border-t border-slate-100 pt-4">
+      <table class="w-full text-xs mb-4">
+        {% for l in detalle[p.id].lineas %}
+        <tr>
+          <td class="py-1 pr-3 uppercase {{ 'text-emerald-600' if l.naturaleza == 'cargo' else 'text-rose-600' }}">{{ l.naturaleza }}</td>
+          <td class="py-1 pr-3 font-mono">{{ l.cuenta }}</td>
+          <td class="py-1 pr-3 text-right">${{ "%.2f"|format(l.importe) }}</td>
+          <td class="py-1 text-slate-500">{{ l.descripcion }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+
+      <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-500 space-y-1">
+        <div class="font-medium text-slate-600 mb-1">¿Por qué se generó así?</div>
+        {% for linea in detalle[p.id].explicacion %}
+        <div>{{ linea }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-slate-400 text-sm text-center py-12">Todavía no hay pólizas generadas.</div>
+  {% endfor %}
+</div>
+{% endblock %}

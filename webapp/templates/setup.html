@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block titulo %}Configuración inicial - Orange Poliza{% endblock %}
+{% block contenido %}
+<div class="max-w-md mx-auto mt-16">
+  <div class="text-center mb-8">
+    {% include "logo.html" %}
+    <div class="text-slate-500 mt-1">Primer arranque: crea tu cuenta y tu primera empresa</div>
+  </div>
+
+  <form method="post" class="bg-white rounded-xl border border-slate-200 p-6 space-y-4 shadow-sm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Nombre de tu organización</label>
+      <input name="organizacion" required class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Tu nombre</label>
+        <input name="nombre" required class="w-full border border-slate-300 rounded-lg px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Usuario (para iniciar sesión)</label>
+        <input name="usuario" required autocapitalize="off" autocomplete="username" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Correo (opcional)</label>
+      <input name="correo" type="email" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+      <input name="password" type="password" required minlength="6" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+
+    <hr class="border-slate-200">
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Nombre de la primera empresa</label>
+      <input name="empresa" required class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">RFC de la empresa (opcional)</label>
+      <input name="rfc_empresa" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+
+    <button class="w-full bg-naranja-600 hover:bg-naranja-700 text-white font-medium rounded-lg py-2.5">
+      Crear cuenta y empezar
+    </button>
+  </form>
+</div>
+{% endblock %}

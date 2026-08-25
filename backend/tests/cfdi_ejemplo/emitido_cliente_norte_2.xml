@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4"
+    xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital"
+    Version="4.0" Fecha="2026-08-05T10:00:00" Total="32000.00" SubTotal="27586.21"
+    Serie="F" Folio="8902" TipoDeComprobante="I" Moneda="MXN"
+    LugarExpedicion="45000">
+  <cfdi:Emisor Rfc="EDP930101AB1" Nombre="EMPRESA DEMO SA DE CV" RegimenFiscal="601"/>
+  <cfdi:Receptor Rfc="CDN980101XYZ" Nombre="COMERCIALIZADORA DEL NORTE SA DE CV"
+      DomicilioFiscalReceptor="45000" RegimenFiscalReceptor="601" UsoCFDI="G03"/>
+  <cfdi:Impuestos TotalImpuestosTrasladados="4413.79">
+    <cfdi:Traslados>
+      <cfdi:Traslado Base="27586.21" Impuesto="002" TipoFactor="Tasa"
+          TasaOCuota="0.160000" Importe="4413.79"/>
+    </cfdi:Traslados>
+  </cfdi:Impuestos>
+  <cfdi:Complemento>
+    <tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital"
+        Version="1.1" UUID="A1B2C3D4-0004-4E5F-8A9B-000000000004" FechaTimbrado="2026-08-05T10:00:00"
+        RfcProvCertif="SAT970701NN3" SelloCFD="" NoCertificadoSAT="00001"/>
+  </cfdi:Complemento>
+</cfdi:Comprobante>

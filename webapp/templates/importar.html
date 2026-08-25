@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block titulo %}Importar{% endblock %}
+{% block contenido %}
+<h1 class="text-xl font-semibold text-marino-900 mb-2">Importar estado de cuenta</h1>
+<p class="text-sm text-slate-500 mb-6">
+  Paso 2 del flujo. Sube el Excel del banco; en el siguiente paso verás
+  una vista previa para indicar qué columna es cuál.
+</p>
+
+<div class="bg-white border border-slate-200 rounded-xl p-6 mb-8">
+  <div class="font-medium text-marino-900 mb-4">Estado de cuenta (Excel)</div>
+  <form method="post" action="/empresas/{{ request.view_args.empresa_id }}/importar/vista-previa" enctype="multipart/form-data" class="space-y-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+      <label class="block text-sm text-slate-600 mb-1">Archivo(s)</label>
+      <input type="file" name="archivos_excel" accept=".xlsx,.xls,.pdf" multiple required class="w-full text-sm">
+      <div class="text-xs text-slate-400 mt-1">
+        Puedes seleccionar varios a la vez si son del mismo banco y formato;
+        la vista previa se arma con el primero.
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm text-slate-600 mb-1">Banco (opcional)</label>
+      <select name="banco_id" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        <option value="">Sin asignar</option>
+        {% for b in bancos %}
+        <option value="{{ b.id }}">{{ b.nombre }} ({{ b.cuenta_contable }})</option>
+        {% endfor %}
+      </select>
+      {% if not bancos %}
+      <div class="text-xs text-amber-600 mt-1">
+        No tienes bancos configurados todavía.
+        <a href="/empresas/{{ request.view_args.empresa_id }}/configuracion" class="underline">Configúralos aquí</a>
+        (opcional, pero recomendado).
+      </div>
+      {% endif %}
+    </div>
+
+    <button class="bg-naranja-600 hover:bg-naranja-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+      Ver vista previa
+    </button>
+  </form>
+</div>
+
+<div class="bg-white border border-slate-200 rounded-xl p-6">
+  <div class="flex items-center gap-2 mb-1">
+    <div class="font-medium text-marino-900">CFDI (facturas XML)</div>
+    <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Opcional</span>
+  </div>
+  <p class="text-sm text-slate-500 mb-4">
+    El sistema procesa el estado de cuenta perfectamente sin esto. Si subes
+    los XML, además va a buscar si alguno coincide con un movimiento por
+    RFC, importe y fecha, y asociarlo automáticamente (incluyendo pagos
+    parciales o varias facturas en un solo pago). Puedes hacerlo ahora,
+    después, o nunca — no bloquea nada del flujo.
+  </p>
+
+  <div class="grid grid-cols-2 gap-4">
+    <form method="post" action="/empresas/{{ request.view_args.empresa_id }}/importar-cfdi" enctype="multipart/form-data" class="space-y-3 border border-slate-200 rounded-lg p-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="tipo_hint" value="emitido">
+      <div class="text-sm font-medium text-slate-700">CFDI Emitidos</div>
+      <div class="text-xs text-slate-400">Facturas que tú emitiste a tus clientes.</div>
+      <input type="file" name="archivos_cfdi" accept=".xml" multiple class="w-full text-sm">
+      <button class="w-full bg-marino-800 hover:bg-marino-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+        Importar emitidos
+      </button>
+    </form>
+
+    <form method="post" action="/empresas/{{ request.view_args.empresa_id }}/importar-cfdi" enctype="multipart/form-data" class="space-y-3 border border-slate-200 rounded-lg p-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="tipo_hint" value="recibido">
+      <div class="text-sm font-medium text-slate-700">CFDI Recibidos</div>
+      <div class="text-xs text-slate-400">Facturas que tus proveedores te emitieron a ti.</div>
+      <input type="file" name="archivos_cfdi" accept=".xml" multiple class="w-full text-sm">
+      <button class="w-full bg-marino-800 hover:bg-marino-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+        Importar recibidos
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

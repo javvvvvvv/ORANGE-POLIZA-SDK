@@ -1,0 +1,6 @@
+Aquí va el archivo orange.lic emitido con herramientas/generar_licencia.py.
+
+NO subir orange.lic a un repositorio público ni compartirlo fuera de la
+empresa. Si este .txt es lo único que ves en esta carpeta, el sistema no
+va a dejar generar ni exportar pólizas hasta que pongas una licencia
+vigente aquí.

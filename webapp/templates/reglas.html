@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block titulo %}Reglas{% endblock %}
+{% block contenido %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-semibold text-marino-900">Reglas</h1>
+  <a href="/empresas/{{ request.view_args.empresa_id }}/reglas/nueva" class="bg-naranja-600 hover:bg-naranja-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+    Nueva regla
+  </a>
+</div>
+
+<div class="space-y-3">
+  {% for r in reglas %}
+  <div class="bg-white border border-slate-200 rounded-xl p-5 {{ 'opacity-50' if not r.activa }}">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="font-medium text-marino-900">{{ r.nombre }}</div>
+        <div class="text-xs text-slate-500 mt-1">
+          Prioridad {{ r.prioridad }} ·
+          {% if r.rfc_contraparte %}RFC {{ r.rfc_contraparte }}{% endif %}
+          {% if r.cuenta_bancaria_contraparte %}Cuenta {{ r.cuenta_bancaria_contraparte }}{% endif %}
+          {% if r.palabras_clave %}Palabras: {{ r.palabras_clave|join(', ') }}{% endif %}
+          {% if r.tipo_movimiento %}· {{ r.tipo_movimiento }}{% endif %}
+        </div>
+        <div class="text-xs text-slate-400 mt-1">Usada {{ r.veces_aplicada }} veces</div>
+      </div>
+      <div class="flex gap-2">
+        <form method="post" action="/empresas/{{ request.view_args.empresa_id }}/reglas/{{ r.id }}/toggle">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="text-xs px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50">
+            {{ 'Desactivar' if r.activa else 'Activar' }}
+          </button>
+        </form>
+        <form method="post" action="/empresas/{{ request.view_args.empresa_id }}/reglas/{{ r.id }}/eliminar" onsubmit="return confirm('¿Eliminar esta regla por completo?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">
+            Eliminar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="mt-3 border-t border-slate-100 pt-3">
+      <table class="w-full text-xs text-slate-600">
+        {% for linea in r.plantilla %}
+        <tr>
+          <td class="py-1 pr-3 uppercase {{ 'text-emerald-600' if linea.naturaleza == 'cargo' else 'text-rose-600' }}">{{ linea.naturaleza }}</td>
+          <td class="py-1 pr-3 font-mono">{{ linea.cuenta }}</td>
+          <td class="py-1 pr-3 font-mono">{{ linea.formula }}</td>
+          <td class="py-1 text-slate-400">{{ linea.descripcion_linea or '' }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-slate-400 text-sm text-center py-12">Todavía no hay reglas configuradas.</div>
+  {% endfor %}
+</div>
+{% endblock %}

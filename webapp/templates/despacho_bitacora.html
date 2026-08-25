@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}Bitácora de Auditoría{% endblock %}
+{% block contenido %}
+<h1 class="text-2xl font-bold text-marino-900 mb-6">Bitácora de Auditoría</h1>
+<p class="text-slate-500 mb-8">Registro histórico de las acciones importantes realizadas por el equipo del despacho.</p>
+
+<div class="bg-white border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+      <tr>
+        <th class="px-6 py-3 font-medium w-48">Fecha y Hora</th>
+        <th class="px-6 py-3 font-medium w-48">Usuario</th>
+        <th class="px-6 py-3 font-medium w-48">Acción</th>
+        <th class="px-6 py-3 font-medium">Detalle</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for l in logs %}
+      <tr class="hover:bg-slate-50 transition">
+        <td class="px-6 py-4 text-slate-500 font-mono text-xs">{{ l.fecha[:19] }}</td>
+        <td class="px-6 py-4 font-medium text-slate-800">{{ l.usuario_nombre or 'Sistema' }}</td>
+        <td class="px-6 py-4 text-naranja-600 font-medium">{{ l.accion }}</td>
+        <td class="px-6 py-4 text-slate-600">{{ l.detalle }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="px-6 py-12 text-center text-slate-500">Aún no hay registros de auditoría.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

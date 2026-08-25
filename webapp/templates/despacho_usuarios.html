@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block titulo %}Equipo del Despacho{% endblock %}
+{% block contenido %}
+<h1 class="text-2xl font-bold text-marino-900 mb-6">Equipo de tu Despacho</h1>
+
+<div class="bg-white border border-slate-200 rounded-2xl p-6 mb-8 shadow-sm">
+  <h2 class="text-lg font-medium text-slate-800 mb-4">Invitar Nuevo Miembro</h2>
+  <form method="POST" action="/despacho/usuarios/nuevo" class="flex flex-wrap gap-4 items-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Nombre Completo</label>
+      <input type="text" name="nombre" required class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-naranja-500 focus:border-naranja-500 sm:text-sm">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Usuario (Login)</label>
+      <input type="text" name="usuario" required class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-naranja-500 focus:border-naranja-500 sm:text-sm">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+      <input type="password" name="password" required class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-naranja-500 focus:border-naranja-500 sm:text-sm">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Rol</label>
+      <select name="rol" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-naranja-500 focus:border-naranja-500 sm:text-sm">
+        <option value="analista">Analista (Solo ver y procesar)</option>
+        <option value="gerente">Gerente (Acceso total)</option>
+      </select>
+    </div>
+    <button type="submit" class="bg-naranja-600 hover:bg-naranja-700 text-white font-medium rounded-lg px-6 py-2 shadow-sm">Agregar Usuario</button>
+  </form>
+</div>
+
+<div class="bg-white border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+      <tr>
+        <th class="px-6 py-3 font-medium">Nombre</th>
+        <th class="px-6 py-3 font-medium">Usuario</th>
+        <th class="px-6 py-3 font-medium">Rol</th>
+        <th class="px-6 py-3 font-medium text-right">Acciones</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for u in usuarios %}
+      <tr class="hover:bg-slate-50 transition">
+        <td class="px-6 py-4 font-medium text-slate-900">{{ u.nombre }}</td>
+        <td class="px-6 py-4 text-slate-600">{{ u.usuario }}</td>
+        <td class="px-6 py-4 text-slate-600 uppercase text-xs font-semibold">{{ u.rol_global }}</td>
+        <td class="px-6 py-4 text-right">
+          {% if u.id != g.usuario.id %}
+          <form method="POST" action="/despacho/usuarios/{{ u.id }}/eliminar" onsubmit="return confirm('¿Seguro que deseas eliminar a este usuario?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition">Eliminar</button>
+          </form>
+          {% else %}
+          <span class="text-xs text-slate-400">Tú (Actual)</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

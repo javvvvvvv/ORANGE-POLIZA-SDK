@@ -1,0 +1,28 @@
+# Entornos virtuales
+webapp/.venv/
+**/.venv/
+__pycache__/
+*.pyc
+
+# Credenciales y datos sensibles
+webapp/.env
+webapp/secret.key
+
+# Artefactos locales (temporales/subidos), bases sqlite viejas y logs
+webapp/uploads/
+*.db
+*.db-journal
+*.log
+
+# Salidas generadas
+*.xls
+*.xlsx
+!database/plantilla_encabezados_contpaqi.xlsx
+!database/ejemplo_contpaqi_referencia.xls
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+licencia/orange.lic

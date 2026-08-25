@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block titulo %}Pendientes de revisión{% endblock %}
+{% block contenido %}
+<h1 class="text-xl font-semibold text-marino-900 mb-6">Pendientes de revisión</h1>
+
+<datalist id="cuentas-catalogo">
+  {% for c in cuentas %}
+  <option value="{{ c.cuenta }}">{{ c.descripcion }}</option>
+  {% endfor %}
+</datalist>
+
+<div class="space-y-4">
+  {% for item in items %}
+  {% set m = item.movimiento %}
+  {% set s = item.sugerencia %}
+  <div class="bg-white border border-slate-200 rounded-xl p-5">
+    <div class="flex items-start justify-between mb-3">
+      <div>
+        <div class="font-medium text-marino-900">{{ m.descripcion }}</div>
+        <div class="text-xs text-slate-500 mt-1">{{ m.fecha }} · {{ m.tipo }} · ${{ "%.2f"|format(m.total) }}</div>
+      </div>
+      <button type="button" onclick="document.getElementById('form-{{ m.id }}').classList.toggle('hidden')"
+              class="text-sm text-naranja-600 hover:text-naranja-700">
+        Crear regla
+      </button>
+    </div>
+
+    <div class="text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
+      {{ s.explicacion }}
+    </div>
+
+    <form id="form-{{ m.id }}" method="post" action="/empresas/{{ request.view_args.empresa_id }}/pendientes/{{ m.id }}/crear-regla" class="hidden mt-4 space-y-3 border-t border-slate-100 pt-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Coincidir por</label>
+          <input name="tipo_coincidencia" value="{{ s.tipo_coincidencia }}" readonly
+                 class="w-full border border-slate-200 bg-slate-50 rounded-lg px-2 py-1.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Valor</label>
+          <input name="valor_coincidencia" value="{{ s.valor_coincidencia }}"
+                 class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Nombre de la regla</label>
+          <input name="nombre_regla" value="{{ s.nombre_sugerido }}"
+                 class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+        </div>
+      </div>
+      <input type="hidden" name="tipo_movimiento" value="{{ m.tipo }}">
+
+      <div class="space-y-2" id="lineas-{{ m.id }}">
+        <div class="linea grid grid-cols-12 gap-2 items-center">
+          <input name="linea_cuenta" placeholder="Cuenta" list="cuentas-catalogo" required class="col-span-3 border border-slate-300 rounded-lg px-2 py-1.5 text-sm font-mono">
+          <select name="linea_naturaleza" class="col-span-2 border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+            <option value="cargo">Cargo</option>
+            <option value="abono">Abono</option>
+          </select>
+          <input name="linea_formula" placeholder="TOTAL / 1.16" required class="col-span-3 border border-slate-300 rounded-lg px-2 py-1.5 text-sm font-mono">
+          <input name="linea_descripcion" placeholder="Descripción (opcional)" class="col-span-3 border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+          <button type="button" onclick="this.closest('.linea').remove()" class="col-span-1 text-red-500 text-sm">Quitar</button>
+        </div>
+      </div>
+      <button type="button" onclick="agregarLineaPendiente('{{ m.id }}')" class="text-xs text-naranja-600">
+        + Agregar movimiento
+      </button>
+
+      <button class="block bg-naranja-600 hover:bg-naranja-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+        Guardar regla y clasificar
+      </button>
+    </form>
+  </div>
+  {% else %}
+  <div class="text-slate-400 text-sm text-center py-12">No hay movimientos pendientes de revisión.</div>
+  {% endfor %}
+</div>
+
+<script>
+  function agregarLineaPendiente(movId) {
+    const contenedor = document.getElementById('lineas-' + movId);
+    const nueva = contenedor.children[0].cloneNode(true);
+    nueva.querySelectorAll('input').forEach(i => i.value = '');
+    contenedor.appendChild(nueva);
+  }
+</script>
+{% endblock %}

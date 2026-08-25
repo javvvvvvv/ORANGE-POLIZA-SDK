@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block titulo %}Catálogo de cuentas{% endblock %}
+{% block contenido %}
+<h1 class="text-xl font-semibold text-marino-900 mb-6">Catálogo de cuentas</h1>
+
+<div class="grid grid-cols-2 gap-6 mb-8">
+  <div class="bg-white border border-slate-200 rounded-xl p-6">
+    <div class="font-medium text-marino-900 mb-3">Subir desde Excel</div>
+    <div class="text-xs text-slate-500 mb-3">
+      Debe tener columnas "cuenta" y "descripcion"; si no las tiene, se
+      toman la primera y segunda columna del archivo.
+    </div>
+    <form method="post" enctype="multipart/form-data" class="space-y-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="modo" value="archivo">
+      <input type="file" name="archivo_catalogo" accept=".xlsx,.xls" required class="w-full text-sm">
+      <button class="bg-naranja-600 hover:bg-naranja-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+        Importar
+      </button>
+    </form>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-xl p-6">
+    <div class="font-medium text-marino-900 mb-3">Pegar datos</div>
+    <div class="text-xs text-slate-500 mb-3">Una cuenta por línea: cuenta [tab o coma] descripción.</div>
+    <form method="post" class="space-y-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="modo" value="texto">
+      <textarea name="texto_catalogo" rows="4" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono"
+                placeholder="1001151150&#9;Cuenta Bancaria Principal"></textarea>
+      <button class="bg-naranja-600 hover:bg-naranja-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+        Importar
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="bg-white border border-slate-200 rounded-xl overflow-hidden overflow-x-auto">
+  <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+    <form method="get" class="flex-1 mr-3">
+      <input name="q" value="{{ buscar }}" placeholder="Buscar cuenta o descripción..."
+             class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+    </form>
+    <form method="post" action="/empresas/{{ request.view_args.empresa_id }}/catalogo/eliminar-todo" onsubmit="return confirm('¿Eliminar todo el catálogo de esta empresa?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="text-xs text-red-600 hover:underline whitespace-nowrap">Eliminar todo</button>
+    </form>
+  </div>
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+        <th class="px-5 py-2">Cuenta</th>
+        <th class="px-5 py-2">Descripción</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      {% for c in cuentas %}
+      <tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+        <td class="px-5 py-2 font-mono text-slate-800" style="padding-left: {{ 1.25 + ((c.nivel or 1) - 1) * 1.5 }}rem;">
+          {% if c.nivel == 1 %}
+            <span class="font-bold text-slate-900">{{ c.cuenta }}</span>
+          {% else %}
+            <span class="text-slate-500 mr-1">&#x2514;</span>{{ c.cuenta }}
+          {% endif %}
+        </td>
+        <td class="px-5 py-2 text-slate-600 {% if c.nivel == 1 %}font-semibold{% endif %}">{{ c.descripcion }}</td>
+      </tr>
+
+      {% else %}
+      <tr><td colspan="2" class="px-5 py-6 text-center text-slate-400">Sin cuentas en el catálogo todavía.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

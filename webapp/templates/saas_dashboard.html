@@ -1,0 +1,103 @@
+
+{% extends "base.html" %}
+{% block titulo %}Panel SaaS (Super Admin){% endblock %}
+{% block contenido %}
+<h1 class="text-xl font-semibold text-marino-900 mb-6">Panel de Ventas SaaS (Super Admin)</h1>
+
+
+<div class="grid grid-cols-3 gap-4 mb-8">
+  <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div class="text-sm text-slate-500 mb-1">Total Despachos B2B</div>
+    <div class="text-3xl font-bold text-marino-900">{{ total_despachos }}</div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div class="text-sm text-slate-500 mb-1">Total Empresas (Clientes finales)</div>
+    <div class="text-3xl font-bold text-emerald-600">{{ total_empresas }}</div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div class="text-sm text-slate-500 mb-1">Pólizas Procesadas Globalmente</div>
+    <div class="text-3xl font-bold text-naranja-600">{{ total_polizas }}</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <div>
+    <h2 class="font-medium text-slate-700 mb-4">Despachos Registrados (Tenants)</h2>
+    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 text-left text-xs text-slate-500 border-b border-slate-200">
+            <th class="px-5 py-3">ID</th><th class="px-5 py-3">Despacho</th><th class="px-5 py-3">Estatus</th><th class="px-5 py-3">Vence</th><th class="px-5 py-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in organizaciones %}
+          <tr class="border-b border-slate-100 last:border-0">
+            <td class="px-5 py-3 text-slate-400">#{{ o.id }}</td>
+            <td class="px-5 py-3 font-medium text-slate-800">
+              {{ o.nombre }}
+              <div class="text-xs text-slate-400 font-normal">{{ o.num_usuarios }} usuarios, {{ o.num_empresas }} empresas</div>
+            </td>
+            <td class="px-5 py-3">
+              {% if o.estado_suscripcion == 'activa' %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">Activa</span>
+              {% else %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Suspendida</span>
+              {% endif %}
+            </td>
+            <td class="px-5 py-3 text-slate-600 text-xs">
+              {{ o.fecha_vencimiento[:10] if o.fecha_vencimiento else 'Lifetime' }}
+            </td>
+            <td class="px-5 py-3 text-right flex justify-end gap-2 items-center">
+              <form method="post" action="/saas/organizaciones/{{ o.id }}/reactivar" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button title="+30 dias" class="text-xs text-emerald-600 hover:underline px-1">+30 Días</button>
+              </form>
+              <form method="post" action="/saas/organizaciones/{{ o.id }}/suspender" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button title="Suspender" class="text-xs text-red-600 hover:underline px-1">Suspender</button>
+              </form>
+              <button onclick="renombrarDespacho({{ o.id }}, '{{ o.nombre }}')" class="text-xs text-blue-600 hover:underline px-1">Renombrar</button>
+              {% if o.id != 1 %}
+              <form method="post" action="/saas/organizaciones/{{ o.id }}/eliminar" class="inline" onsubmit="return confirm('¿Seguro que deseas eliminar este despacho, TODOS sus usuarios y TODAS sus empresas? ¡Esta acción es irreversible!');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button title="Eliminar" class="text-xs text-red-800 hover:underline px-1 font-bold">X</button>
+              </form>
+              {% endif %}
+</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <div>
+    <h2 class="font-medium text-slate-700 mb-4">Alta de Nuevo Despacho Cliente</h2>
+    <div class="bg-white border border-slate-200 rounded-xl p-6">
+      <form method="post" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Nombre del Despacho (Organizaci&oacute;n)</label>
+          <input name="nombre_org" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Nombre del Administrador (Due&ntilde;o)</label>
+          <input name="nombre_admin" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Usuario (para Login)</label>
+          <input name="usuario_admin" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Contrase&ntilde;a temporal</label>
+          <input type="password" name="password_admin" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+        <button class="bg-marino-900 hover:bg-marino-800 text-white text-sm font-medium rounded-lg px-4 py-2 w-full">
+          Crear Despacho y Administrador
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

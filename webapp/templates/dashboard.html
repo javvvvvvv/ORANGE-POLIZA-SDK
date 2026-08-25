@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block titulo %}Dashboard - {{ empresa.nombre }}{% endblock %}
+{% block contenido %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-xl font-semibold text-marino-900">{{ empresa.nombre }}</h1>
+    <div class="text-sm text-slate-500">{{ empresa.rfc or 'Sin RFC configurado' }}</div>
+  </div>
+</div>
+
+{% if pendientes_config %}
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-8">
+  <div class="text-sm font-medium text-amber-800 mb-2">⚠ Antes de seguir, revisa esto:</div>
+  <ul class="space-y-1.5">
+    {% for item in pendientes_config %}
+    <li class="text-sm text-amber-700">
+      <a href="{{ item.url }}" class="underline hover:text-amber-900">{{ item.texto }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+
+<!-- KPIs Financieros -->
+<div class="grid grid-cols-3 gap-4 mb-8">
+  <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div class="text-sm text-slate-500 mb-1">Ingresos Totales</div>
+    <div class="text-3xl font-bold text-emerald-600">${{ "%.2f"|format(ingresos_totales) }}</div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div class="text-sm text-slate-500 mb-1">Egresos Totales</div>
+    <div class="text-3xl font-bold text-red-600">${{ "%.2f"|format(egresos_totales) }}</div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <div class="text-sm text-slate-500 mb-1">Flujo de Efectivo</div>
+    <div class="text-3xl font-bold {% if flujo >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
+      ${{ "%.2f"|format(flujo) }}
+    </div>
+  </div>
+</div>
+
+<!-- Graficas Chart.js -->
+<div class="grid grid-cols-2 gap-6 mb-8">
+  <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <h3 class="text-md font-semibold text-slate-700 mb-4">Ingresos por Concepto</h3>
+    <canvas id="chartIngresos" height="250"></canvas>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+    <h3 class="text-md font-semibold text-slate-700 mb-4">Egresos por Concepto</h3>
+    <canvas id="chartEgresos" height="250"></canvas>
+  </div>
+</div>
+
+<!-- Cargar Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dataIngresos = {{ grafica_ingresos | tojson | safe }};
+    const dataEgresos = {{ grafica_egresos | tojson | safe }};
+    
+    const generarColores = (count) => {
+        const colores = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ef4444", "#14b8a6", "#f97316", "#6366f1", "#ec4899", "#64748b"];
+        return colores.slice(0, count);
+    };
+
+    if (dataIngresos && dataIngresos.length > 0) {
+        new Chart(document.getElementById("chartIngresos"), {
+            type: "doughnut",
+            data: {
+                labels: dataIngresos.map(d => d.label),
+                datasets: [{
+                    data: dataIngresos.map(d => d.value),
+                    backgroundColor: generarColores(dataIngresos.length),
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right" } } }
+        });
+    }
+
+    if (dataEgresos && dataEgresos.length > 0) {
+        new Chart(document.getElementById("chartEgresos"), {
+            type: "doughnut",
+            data: {
+                labels: dataEgresos.map(d => d.label),
+                datasets: [{
+                    data: dataEgresos.map(d => d.value),
+                    backgroundColor: generarColores(dataEgresos.length),
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right" } } }
+        });
+    }
+});
+</script>
+\n<h2 class="text-lg font-semibold text-slate-700 mb-3">Métricas Operativas</h2>\n<div class="grid grid-cols-4 gap-4 mb-8">
+  <div class="bg-white border border-slate-200 rounded-xl p-4">
+    <div class="text-2xl font-semibold text-marino-900">{{ total }}</div>
+    <div class="text-xs text-slate-500 mt-1">Movimientos totales</div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-xl p-4">
+    <div class="text-2xl font-semibold text-emerald-600">{{ automaticos }}</div>
+    <div class="text-xs text-slate-500 mt-1">Clasificados automático</div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-xl p-4">
+    <div class="text-2xl font-semibold text-amber-600">{{ pendientes }}</div>
+    <div class="text-xs text-slate-500 mt-1">Pendientes de revisión</div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-xl p-4">
+    <div class="text-2xl font-semibold text-naranja-600">{{ con_poliza }}</div>
+    <div class="text-xs text-slate-500 mt-1">Con póliza generada</div>
+  </div>
+</div>
+
+<div class="bg-white border border-slate-200 rounded-xl p-5 mb-8">
+  <div class="flex items-center justify-between mb-2">
+    <div class="text-sm font-medium text-slate-700">% automatizado</div>
+    <div class="text-sm text-slate-500">{{ pct }}%</div>
+  </div>
+  <div class="w-full bg-slate-100 rounded-full h-2.5">
+    <div class="bg-naranja-500 h-2.5 rounded-full" style="width: {{ pct }}%"></div>
+  </div>
+</div>
+
+<div class="bg-white border border-slate-200 rounded-xl overflow-hidden overflow-x-auto">
+  <div class="px-5 py-3 border-b border-slate-200 text-sm font-medium text-slate-700">
+    Últimos movimientos
+  </div>
+  <table class="w-full text-sm">
+    <tbody>
+      {% for m in ultimos %}
+      <tr class="border-b border-slate-100 last:border-0">
+        <td class="px-5 py-3 w-6">
+          {% if m.estado_clasificacion == 'automatico' %}
+            <span class="text-emerald-600">✓</span>
+          {% elif m.estado_clasificacion == 'pendiente' %}
+            <span class="text-amber-500">⚠</span>
+          {% else %}
+            <span class="text-slate-400">•</span>
+          {% endif %}
+        </td>
+        <td class="px-2 py-3 text-slate-500 w-24">{{ m.fecha }}</td>
+        <td class="px-2 py-3 text-slate-800">{{ m.descripcion }}</td>
+        <td class="px-2 py-3 text-right text-slate-800 w-32">${{ "%.2f"|format(m.total) }}</td>
+      </tr>
+      {% else %}
+      <tr><td class="px-5 py-6 text-slate-400 text-center" colspan="4">Todavía no hay movimientos importados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

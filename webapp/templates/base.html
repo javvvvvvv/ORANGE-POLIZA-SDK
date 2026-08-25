@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block titulo %}Orange Poliza Engine{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="{{ url_for('static', filename='logo.css') }}" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            naranja: { 50:'#fff7ed', 100:'#ffedd5', 500:'#f97316', 600:'#ea580c', 700:'#c2410c' },
+            marino: { 900:'#0f172a', 800:'#1e293b', 700:'#334155', 600:'#475569' },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex">
+
+{% if usuario_actual %}
+<aside class="w-64 bg-marino-900 text-slate-200 flex flex-col shrink-0">
+  <div class="px-5 py-5 border-b border-marino-700">
+    <div class="text-lg font-semibold text-white truncate" title="{{ usuario_actual.organizacion_nombre if usuario_actual.rol_global != 'superadmin' else 'Orange Crew SaaS' }}">
+      {{ usuario_actual.organizacion_nombre if usuario_actual.rol_global != 'superadmin' else 'Orange Crew SaaS' }}
+    </div>
+    <div class="text-xs text-slate-400">{% if usuario_actual.rol_global == 'superadmin' %}Administración Global{% else %}Motor Contable{% endif %}</div>
+  </div>
+
+  {% if empresas_usuario %}
+  <div class="px-5 py-3 border-b border-marino-700">
+    <div class="text-xs uppercase text-slate-400 mb-1">Empresa</div>
+    <select onchange="if(this.value === '__nueva__'){window.location.href='/empresas/nueva'}else{window.location.href='/empresas/' + this.value + '/'}"
+            class="w-full bg-marino-800 text-sm text-white rounded px-2 py-1.5 border border-marino-700">
+      {% for e in empresas_usuario %}
+      <option value="{{ e.id }}" {% if request.view_args and request.view_args.get('empresa_id')|int == e.id %}selected{% endif %}>
+        {{ e.nombre }}
+      </option>
+      {% endfor %}
+      <option value="__nueva__">+ Nueva empresa...</option>
+    </select>
+  </div>
+  {% endif %}
+
+  
+  <nav class="px-3 py-2 text-sm border-b border-marino-700 space-y-1">
+    {% if usuario_actual.rol_global == 'superadmin' %}
+      <a href="{{ url_for('saas.saas_dashboard') }}" class="block px-3 py-2 rounded hover:bg-marino-800 text-naranja-500 font-semibold">SaaS Dashboard</a>
+    {% else %}
+      <a href="{{ url_for('empresas.mi_despacho') }}" class="block px-3 py-2 rounded hover:bg-marino-800 text-naranja-500 font-semibold">Mi Despacho</a>
+    {% endif %}
+  </nav>
+
+  {% if request.view_args and request.view_args.get('empresa_id') %}
+
+  {% set eid = request.view_args.get('empresa_id') %}
+  <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
+    <a href="/empresas/{{ eid }}/" class="block px-3 py-2 rounded hover:bg-marino-800">1. Dashboard</a>
+
+    <div class="text-xs uppercase text-slate-500 px-3 pt-3 pb-1">Configuración inicial</div>
+    <a href="/empresas/{{ eid }}/ajustes" class="block px-3 py-2 rounded hover:bg-marino-800">Ajustes e Impuestos</a>
+    <a href="/empresas/{{ eid }}/catalogo" class="block px-3 py-2 rounded hover:bg-marino-800">Catálogo de cuentas</a>
+    <a href="/empresas/{{ eid }}/configuracion" class="block px-3 py-2 rounded hover:bg-marino-800">IVA y bancos</a>
+    <a href="/empresas/{{ eid }}/usuarios" class="block px-3 py-2 rounded hover:bg-marino-800">Usuarios</a>
+
+    <div class="text-xs uppercase text-slate-500 px-3 pt-3 pb-1">Cada mes</div>
+    <a href="/empresas/{{ eid }}/importar" class="block px-3 py-2 rounded hover:bg-marino-800">2. Importar estado de cuenta</a>
+    <a href="/empresas/{{ eid }}/conciliaciones" class="block px-3 py-2 rounded hover:bg-marino-800">Conciliaciones CFDI (opcional)</a>
+    <a href="/empresas/{{ eid }}/pendientes" class="block px-3 py-2 rounded hover:bg-marino-800">3. Clasificar pendientes</a>
+    <a href="/empresas/{{ eid }}/reglas" class="block px-3 py-2 rounded hover:bg-marino-800">Reglas guardadas</a>
+
+    <div class="text-xs uppercase text-slate-500 px-3 pt-3 pb-1">Resultado</div>
+    <form action="/empresas/{{ eid }}/polizas/generar" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="w-full text-left px-3 py-2 rounded hover:bg-marino-800">4. Generar pólizas</button>
+    </form>
+    <a href="/empresas/{{ eid }}/polizas" class="block px-3 py-2 rounded hover:bg-marino-800">5. Revisar pólizas</a>
+    <a href="/empresas/{{ eid }}/documentos" class="block px-3 py-2 rounded hover:bg-marino-800">Documentos / estado marcado</a>
+    <a href="/empresas/{{ eid }}/polizas/exportar" class="block px-3 py-2 rounded hover:bg-marino-800">6. Exportar .xls</a>
+  </nav>
+  {% endif %}
+
+  <div class="px-5 py-4 border-t border-marino-700 text-xs">
+    <a href="/empresas" class="block mb-2 text-naranja-500 hover:text-naranja-400 font-semibold">← Volver al Inicio</a>
+      <div class="text-slate-300">{{ usuario_actual.nombre }}</div>
+    <a href="/logout" class="text-slate-500 hover:text-slate-300">Cerrar sesión</a>
+  </div>
+</aside>
+{% endif %}
+
+<main class="flex-1 min-w-0">
+  <div class="max-w-5xl mx-auto px-8 py-8">
+
+    {% with mensajes = get_flashed_messages(with_categories=true) %}
+      {% if mensajes %}
+        <div class="mb-6 space-y-2">
+          {% for categoria, mensaje in mensajes %}
+          <div class="px-4 py-3 rounded-lg text-sm {{ 'bg-red-50 text-red-700 border border-red-200' if categoria == 'error' else 'bg-emerald-50 text-emerald-700 border border-emerald-200' }}">
+            {{ mensaje }}
+          </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block contenido %}{% endblock %}
+  </div>
+</main>
+
+</body>
+</html>

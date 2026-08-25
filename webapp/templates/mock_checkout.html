@@ -1,0 +1,33 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Pasarela de Pago - Simulador</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 max-w-md w-full">
+    <h1 class="text-2xl font-bold text-slate-800 mb-2">Renovar Suscripción</h1>
+    <p class="text-slate-500 mb-6 text-sm">
+      Esta es una pasarela de pago simulada (Mock) porque no hay claves de Stripe configuradas. En producción, esto redirigirá a Stripe Checkout.
+    </p>
+    <div class="bg-slate-50 border border-slate-200 p-4 rounded-lg mb-6 text-sm">
+      <div class="flex justify-between mb-2">
+        <span class="text-slate-600">Plan Profesional (Mensual)</span>
+        <span class="font-medium">.00 MXN</span>
+      </div>
+      <div class="flex justify-between font-bold text-slate-800 border-t border-slate-200 pt-2 mt-2">
+        <span>Total a cobrar</span>
+        <span>.00 MXN</span>
+      </div>
+    </div>
+    
+    <form method="POST">
+      <button type="submit" class="block w-full bg-naranja-600 hover:bg-naranja-700 text-white font-medium py-3 rounded-lg transition text-center">
+        Simular Pago Exitoso
+      </button>
+    </form>
+    <a href="/logout" class="block w-full text-center text-slate-500 hover:text-slate-700 text-sm mt-4">Cancelar</a>
+  </div>
+</body>
+</html>

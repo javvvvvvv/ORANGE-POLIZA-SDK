@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva empresa{% endblock %}
+{% block contenido %}
+<div class="max-w-md">
+  <h1 class="text-xl font-semibold text-marino-900 mb-6">Nueva empresa</h1>
+  <form method="post" class="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+      <label class="block text-sm text-slate-600 mb-1">Nombre de la empresa</label>
+      <input name="nombre" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+    </div>
+    <div>
+      <label class="block text-sm text-slate-600 mb-1">RFC (opcional)</label>
+      <input name="rfc" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+    </div>
+    <button class="bg-naranja-600 hover:bg-naranja-700 text-white text-sm font-medium rounded-lg px-4 py-2">
+      Crear empresa
+    </button>
+  </form>
+</div>
+{% endblock %}

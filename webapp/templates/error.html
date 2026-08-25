@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block titulo %}Error - Orange Poliza{% endblock %}
+
+{% block contenido %}
+<div class="max-w-2xl mx-auto mt-12 bg-white rounded shadow border border-red-200 overflow-hidden overflow-x-auto">
+  <div class="bg-red-50 border-b border-red-200 px-6 py-4 flex items-center space-x-3">
+    <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+    </svg>
+    <h2 class="text-lg font-semibold text-red-700">{{ titulo }}</h2>
+  </div>
+  <div class="p-6">
+    <p class="text-slate-700 mb-4">{{ mensaje }}</p>
+    {% if detalle %}
+    <div class="bg-slate-100 rounded p-4 text-xs font-mono text-slate-600 overflow-x-auto">
+      {{ detalle }}
+    </div>
+    {% endif %}
+    
+    <div class="mt-6">
+      <a href="javascript:history.back()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded transition font-medium">Volver atrás</a>
+      <a href="/" class="ml-2 px-4 py-2 bg-naranja-500 hover:bg-naranja-600 text-white rounded transition font-medium">Ir al inicio</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

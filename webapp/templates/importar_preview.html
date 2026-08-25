@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block titulo %}Vista previa - {{ nombre_archivo }}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Auto-mapeo Inteligente de Columnas (Fase 6)
+    const sugerencias = {{ sugerencias | tojson if sugerencias else 'null' | safe }};
+    if (sugerencias) {
+        // Formato
+        if (sugerencias.formato) {
+            const r = document.querySelector('input[name="formato"][value="' + sugerencias.formato + '"]');
+            if (r) r.checked = true;
+            // Disparar evento para mostrar los selects correspondientes
+            r.dispatchEvent(new Event('change'));
+        }
+        
+        // Asignar selects
+        const asignar = (name, valor) => {
+            if (!valor) return;
+            const sel = document.querySelector('select[name="' + name + '"]');
+            if (sel) {
+                for (let i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].value === valor) {
+                        sel.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        };
+        
+        asignar('columna_fecha', sugerencias.columna_fecha);
+        asignar('columna_ingresos', sugerencias.columna_ingresos);
+        asignar('columna_egresos', sugerencias.columna_egresos);
+        asignar('columna_importe', sugerencias.columna_importe);
+        
+        // Multi-select para descripcion
+        if (sugerencias.columnas_descripcion && sugerencias.columnas_descripcion.length > 0) {
+            const sels = document.querySelectorAll('select[name="columnas_descripcion"]');
+            for(let j=0; j<Math.min(sels.length, sugerencias.columnas_descripcion.length); j++) {
+                const s = sels[j];
+                const val = sugerencias.columnas_descripcion[j];
+                for (let i = 0; i < s.options.length; i++) {
+                    if (s.options[i].value === val) {
+                        s.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Mostrar badge
+        const h5 = document.querySelector("h5.mb-0");
+        if (h5) {
+            const badge = document.createElement("span");
+            badge.className = "badge bg-success ms-2 text-sm";
+            badge.innerHTML = "Auto-mapeo Inteligente Aplicado";
+            h5.appendChild(badge);
+        }
+    }
+});
+</script>
+
+{% endblock %}
+{% block contenido %}
+<h1 class="text-xl font-semibold text-marino-900 mb-2">Vista previa: {{ nombre_archivo }}</h1>
+<p class="text-sm text-slate-500 mb-6">
+  {% if total_archivos > 1 %}Este mapeo se aplicará a los {{ total_archivos }} archivos que seleccionaste.{% endif %}
+</p>
+
+{% if fila_autodetectada and fila_encabezado is not none %}
+<div class="bg-naranja-50 border border-naranja-200 text-naranja-700 text-sm rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
+  <span>✨</span>
+  <span>
+    Detectamos automáticamente que el encabezado está en la
+    <strong>fila {{ fila_encabezado + 1 }}</strong> (saltando membrete/logo si lo había).
+    Si no es correcta, elige otra fila abajo con "Usar esta fila".
+  </span>
+</div>
+{% endif %}
+
+{% if hojas|length > 1 %}
+<div class="bg-white border border-slate-200 rounded-xl p-4 mb-4">
+  <label class="block text-sm text-slate-600 mb-1">Pestaña del archivo</label>
+  <select onchange="window.location.href='?token={{ token }}&hoja=' + encodeURIComponent(this.value)"
+          class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+    {% for h in hojas %}
+    <option value="{{ h }}" {{ 'selected' if h == hoja_actual }}>{{ h }}</option>
+    {% endfor %}
+  </select>
+  <div class="text-xs text-slate-400 mt-1">Este archivo tiene {{ hojas|length }} pestañas.</div>
+</div>
+{% endif %}
+
+<div class="bg-white border border-slate-200 rounded-xl p-4 mb-6">
+  <div class="text-sm font-medium text-marino-900 mb-1">Paso 1: ¿en qué fila están los encabezados?</div>
+  <p class="text-xs text-slate-500 mb-3">
+    Muchos bancos meten filas de logo o resumen antes de la tabla real.
+    Busca la fila donde empiezan los nombres de columna (Fecha, Concepto,
+    Cargo, Abono...) y haz clic en "Usar esta fila".
+  </p>
+
+  <div class="overflow-x-auto border border-slate-100 rounded-lg">
+    <table class="text-xs w-full">
+      <tbody>
+        {% for fila in filas_crudas %}
+        <tr class="border-b border-slate-100 last:border-0 {{ 'bg-naranja-50' if fila_encabezado is not none and fila.numero - 1 == fila_encabezado }}">
+          <td class="px-2 py-1.5 text-slate-400 whitespace-nowrap border-r border-slate-100 sticky left-0 bg-white">
+            <div class="flex items-center gap-2">
+              <span>{{ fila.numero }}</span>
+              <a href="?token={{ token }}&hoja={{ hoja_actual }}&fila_encabezado={{ fila.numero - 1 }}"
+                 class="text-naranja-600 hover:underline whitespace-nowrap">Usar esta fila</a>
+            </div>
+          </td>
+          {% for valor in fila.valores %}
+          <td class="px-2 py-1.5 text-slate-700 whitespace-nowrap">{{ valor }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if columnas %}
+<form method="post" action="/empresas/{{ request.view_args.empresa_id }}/importar/confirmar" class="space-y-6">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="nombre_hoja" value="{{ hoja_actual }}">
+  <input type="hidden" name="fila_encabezado" value="{{ fila_encabezado }}">
+
+  <div class="bg-white border border-slate-200 rounded-xl p-4">
+    <div class="text-sm font-medium text-marino-900 mb-2">
+      Paso 2: así se ve la tabla con la fila {{ fila_encabezado + 1 }} como encabezado
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200">
+            {% for col in columnas %}
+            <th class="px-3 py-2 text-left font-mono text-slate-600 whitespace-nowrap">{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in filas_mapeadas %}
+          <tr class="border-b border-slate-100 last:border-0">
+            {% for valor in fila %}
+            <td class="px-3 py-2 text-slate-700 whitespace-nowrap">{{ valor }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-xl p-6">
+    <div class="font-medium text-marino-900 mb-4">Paso 3: ¿cómo vienen los movimientos en este archivo?</div>
+    <div class="space-y-2 mb-4">
+      <label class="flex items-center gap-2 text-sm">
+        <input type="radio" name="formato" value="{{ formato_columnas }}" checked onchange="actualizarFormato()">
+        Columnas separadas de Ingresos y Egresos
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="radio" name="formato" value="{{ formato_signo }}" onchange="actualizarFormato()">
+        Una sola columna con signo (positivo/negativo)
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="radio" name="formato" value="{{ formato_tipo }}" onchange="actualizarFormato()">
+        Una columna de importe siempre positivo + una columna que dice el tipo
+      </label>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+    <div class="font-medium text-marino-900">Paso 4: ¿qué columna es cada cosa?</div>
+
+    <div>
+      <label class="block text-xs text-slate-500 mb-1">Fecha *</label>
+      <select name="columna_fecha" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs text-slate-500 mb-1">Descripción (marca una o varias, se concatenan)</label>
+      <div class="flex flex-wrap gap-3">
+        {% for col in columnas %}
+        <label class="flex items-center gap-1 text-sm border border-slate-200 rounded-lg px-2 py-1">
+          <input type="checkbox" name="columnas_descripcion" value="{{ col }}"> {{ col }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="campos-columnas-separadas" class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">Ingresos</label>
+        <select name="columna_ingresos" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">Egresos</label>
+        <select name="columna_egresos" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div id="campos-importe-tipo" class="hidden grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">Importe</label>
+        <select name="columna_importe" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+        </select>
+      </div>
+      <div id="campo-tipo">
+        <label class="block text-xs text-slate-500 mb-1">Columna de tipo (ingreso/egreso)</label>
+        <select name="columna_tipo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <hr class="border-slate-100">
+
+    <div class="grid grid-cols-3 gap-4">
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">RFC contraparte (opcional)</label>
+        <select name="columna_rfc" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">Referencia bancaria (opcional)</label>
+        <select name="columna_referencia" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">Número de factura (opcional)</label>
+        <select name="columna_factura" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <button class="bg-naranja-600 hover:bg-naranja-700 text-white font-medium rounded-lg px-6 py-2.5">
+    Importar y clasificar
+  </button>
+</form>
+
+<script>
+  function actualizarFormato() {
+    const formato = document.querySelector('input[name="formato"]:checked').value;
+    const columnasSeparadas = document.getElementById('campos-columnas-separadas');
+    const importeTipo = document.getElementById('campos-importe-tipo');
+    const campoTipo = document.getElementById('campo-tipo');
+
+    if (formato === '{{ formato_columnas }}') {
+      columnasSeparadas.classList.remove('hidden');
+      importeTipo.classList.add('hidden');
+    } else {
+      columnasSeparadas.classList.add('hidden');
+      importeTipo.classList.remove('hidden');
+      campoTipo.style.display = (formato === '{{ formato_tipo }}') ? 'block' : 'none';
+    }
+  }
+  actualizarFormato();
+</script>
+{% else %}
+<div class="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center text-sm text-slate-500">
+  Elige la fila de encabezado arriba para continuar con el mapeo de columnas.
+</div>
+{% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Auto-mapeo Inteligente de Columnas (Fase 6)
+    const sugerencias = {{ sugerencias | tojson if sugerencias else 'null' | safe }};
+    if (sugerencias) {
+        // Formato
+        if (sugerencias.formato) {
+            const r = document.querySelector('input[name="formato"][value="' + sugerencias.formato + '"]');
+            if (r) r.checked = true;
+            // Disparar evento para mostrar los selects correspondientes
+            r.dispatchEvent(new Event('change'));
+        }
+        
+        // Asignar selects
+        const asignar = (name, valor) => {
+            if (!valor) return;
+            const sel = document.querySelector('select[name="' + name + '"]');
+            if (sel) {
+                for (let i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].value === valor) {
+                        sel.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        };
+        
+        asignar('columna_fecha', sugerencias.columna_fecha);
+        asignar('columna_ingresos', sugerencias.columna_ingresos);
+        asignar('columna_egresos', sugerencias.columna_egresos);
+        asignar('columna_importe', sugerencias.columna_importe);
+        
+        // Multi-select para descripcion
+        if (sugerencias.columnas_descripcion && sugerencias.columnas_descripcion.length > 0) {
+            const sels = document.querySelectorAll('select[name="columnas_descripcion"]');
+            for(let j=0; j<Math.min(sels.length, sugerencias.columnas_descripcion.length); j++) {
+                const s = sels[j];
+                const val = sugerencias.columnas_descripcion[j];
+                for (let i = 0; i < s.options.length; i++) {
+                    if (s.options[i].value === val) {
+                        s.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Mostrar badge
+        const h5 = document.querySelector("h5.mb-0");
+        if (h5) {
+            const badge = document.createElement("span");
+            badge.className = "badge bg-success ms-2 text-sm";
+            badge.innerHTML = "Auto-mapeo Inteligente Aplicado";
+            h5.appendChild(badge);
+        }
+    }
+});
+</script>
+
+{% endblock %}

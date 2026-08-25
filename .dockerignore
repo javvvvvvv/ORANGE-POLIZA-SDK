@@ -1,0 +1,12 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.env
+uploads/
+.vscode
+.idea
+*.bat
+database/*.db
+database/*.sqlite

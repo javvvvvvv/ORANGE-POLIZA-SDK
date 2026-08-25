@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block titulo %}Clasificar pendientes{% endblock %}
+{% block contenido %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-semibold text-marino-900">Clasificar pendientes</h1>
+  {% if total_pendientes > 0 %}
+  <div class="text-sm text-slate-500">
+    {{ restantes }} de {{ total_pendientes }} restantes ·
+    <a href="/empresas/{{ request.view_args.empresa_id }}/pendientes/avanzado" class="text-naranja-600 hover:underline">modo avanzado</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if movimiento is none %}
+<div class="bg-white border border-slate-200 rounded-xl p-12 text-center">
+  <div class="text-emerald-600 text-2xl mb-2">✓</div>
+  <div class="text-slate-700 font-medium">No hay movimientos pendientes de revisión.</div>
+  <div class="text-sm text-slate-400 mt-1">Todo lo importado ya tiene una regla asignada.</div>
+</div>
+{% else %}
+
+<datalist id="cuentas-catalogo">
+  {% for c in cuentas %}
+  <option value="{{ c.cuenta }}">{{ c.descripcion }}</option>
+  {% endfor %}
+</datalist>
+
+<div class="bg-white border border-slate-200 rounded-xl p-6">
+  <div class="flex items-start justify-between mb-4 pb-4 border-b border-slate-100">
+    <div>
+      <div class="text-lg font-medium text-marino-900">{{ movimiento.descripcion }}</div>
+      <div class="text-sm text-slate-500 mt-1">
+        {{ movimiento.fecha }} ·
+        <span class="{{ 'text-emerald-600' if movimiento.tipo == 'ingreso' else 'text-rose-600' }}">
+          {{ 'Ingreso' if movimiento.tipo == 'ingreso' else 'Egreso' }}
+        </span>
+        {% if movimiento.rfc_contraparte %} · RFC {{ movimiento.rfc_contraparte }}{% endif %}
+      </div>
+    </div>
+    <div class="text-2xl font-semibold text-marino-900">${{ "%.2f"|format(movimiento.total) }}</div>
+  </div>
+
+  {% if sugerencia %}
+  <div class="text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2 mb-4">
+    {{ sugerencia.explicacion }}
+  </div>
+  {% endif %}
+
+  {% if cfdi_info %}
+  <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-4 text-sm">
+    <div class="font-medium text-emerald-800">
+      ✓ Este movimiento ya tiene factura asociada: {{ cfdi_info.serie }}{{ cfdi_info.folio }}
+    </div>
+    <div class="text-xs text-emerald-700 mt-1">
+      Base ${{ "%.2f"|format(cfdi_info.base or 0) }} · IVA ${{ "%.2f"|format(cfdi_info.iva_importe or 0) }}
+      ({{ ((cfdi_info.tasa or 0) * 100)|round(0, 'floor')|int }}%). No hace falta que confirmes IVA:
+      el sistema ya lo sabe por la factura. Solo indica a qué cuenta va.
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/empresas/{{ request.view_args.empresa_id }}/pendientes/{{ movimiento.id }}/asignar-rapido" class="space-y-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+      <label class="block text-sm text-slate-600 mb-1">¿A qué cuenta va este movimiento?</label>
+      <input name="cuenta_contraparte" list="cuentas-catalogo" required autofocus
+             placeholder="Busca por número o descripción..."
+             class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+    </div>
+
+    {% if not cfdi_info %}
+    <div class="flex items-center gap-6">
+      <label class="flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" name="afectable_impuestos" id="afectable" checked onchange="document.getElementById('bloque-iva').classList.toggle('hidden', !this.checked)">
+        Afectable a impuestos
+      </label>
+    </div>
+    <div id="bloque-iva" class="flex items-center gap-6 pl-6">
+      <label class="flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" name="tiene_iva" checked>
+        Aplica IVA
+      </label>
+    </div>
+    <div class="text-xs text-slate-400 pl-6">
+      Si desmarcas "afectable a impuestos" (ej. nómina, préstamos entre
+      cuentas propias), el movimiento va directo banco ↔ la cuenta que
+      elijas arriba, sin IVA ni las reglas generales configuradas.
+    </div>
+    {% endif %}
+
+    <div>
+      <label class="block text-sm text-slate-600 mb-1">Cuenta de banco (la contrapartida de este movimiento)</label>
+      <input name="cuenta_banco" list="cuentas-catalogo"
+             value="{{ banco.cuenta_contable if banco else '' }}"
+             class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+      {% if not banco %}
+      <div class="text-xs text-amber-600 mt-1">
+        Este documento no tiene banco asignado; escribe la cuenta contable manualmente.
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="bg-slate-50 rounded-lg p-3">
+      <div class="text-xs text-slate-500 mb-2">Aplicar esta cuenta a...</div>
+      <label class="flex items-center gap-2 text-sm text-slate-700 mb-1">
+        <input type="radio" name="aplicar_a" value="solo_similares" checked>
+        Este movimiento y todos los futuros parecidos (crea una regla reutilizable)
+      </label>
+      <label class="flex items-center gap-2 text-sm text-slate-700">
+        <input type="radio" name="aplicar_a" value="solo_este">
+        Solo este movimiento exacto
+      </label>
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button class="bg-naranja-600 hover:bg-naranja-700 text-white text-sm font-medium rounded-lg px-5 py-2.5">
+        Guardar y siguiente
+      </button>
+      <a href="/empresas/{{ request.view_args.empresa_id }}/reglas/nueva"
+         class="text-sm text-slate-500 hover:text-slate-700 self-center">
+        Necesito una regla más compleja (varias líneas) →
+      </a>
+    </div>
+  </form>
+
+  <form method="post" action="/empresas/{{ request.view_args.empresa_id }}/pendientes/{{ movimiento.id }}/omitir" class="mt-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="text-xs text-slate-400 hover:text-slate-600">Omitir por ahora, ver el siguiente</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

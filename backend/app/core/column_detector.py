@@ -1,0 +1,156 @@
+import re
+import pandas as pd
+
+def es_fecha(texto: str) -> bool:
+    texto = str(texto).strip()
+    if not texto: return False
+    # Regex basico para cazar fechas comunes (dd/mm/yyyy, yyyy-mm-dd, etc)
+    # Tambien textos como 12 Dic 2023
+    patrones = [
+        r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}', # 12/12/2023 o 12-12-23
+        r'\d{4}[/-]\d{1,2}[/-]\d{1,2}', # 2023-12-12
+        r'\d{1,2}\s+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)[a-z]*\s+\d{2,4}' # 12 dic 2023
+    ]
+    for p in patrones:
+        if re.search(p, texto, re.IGNORECASE):
+            return True
+    return False
+
+def extraer_numero(texto) -> float:
+    try:
+        if pd.isna(texto) or texto is None or str(texto).strip() == '': return None
+        texto = str(texto).replace('$', '').replace(',', '').strip()
+        # Manejar formato contable (1,234.50)
+        return float(texto)
+    except:
+        return None
+
+def detectar_columnas(df: pd.DataFrame, fila_encabezado: int = 0) -> dict:
+    """
+    Analiza un DataFrame asumiendo que los datos reales empiezan en fila_encabezado+1.
+    Retorna sugerencias para el mapeo.
+    """
+    sugerencias = {
+        "formato": "columnas_separadas",
+        "columna_fecha": None,
+        "columnas_descripcion": [],
+        "columna_ingresos": None,
+        "columna_egresos": None,
+        "columna_importe": None
+    }
+    
+    if len(df) <= fila_encabezado + 1:
+        return sugerencias
+        
+    df_datos = df.iloc[fila_encabezado + 1: fila_encabezado + 21].copy()
+    columnas = df.iloc[fila_encabezado].fillna("Vacia").astype(str).tolist()
+    
+    # Manejar columnas duplicadas
+    cols_series = pd.Series(columnas)
+    for dup in cols_series[cols_series.duplicated()].unique():
+        cols_series[cols_series[cols_series == dup].index.values.tolist()] = [dup + '_' + str(i) if i != 0 else dup for i in range(sum(cols_series == dup))]
+    columnas = cols_series.tolist()
+    
+    df_datos.columns = columnas
+    
+    scores_fecha = {}
+    scores_numerico = {}
+    scores_texto = {}
+    
+    for col in columnas:
+        validos_fecha = 0
+        validos_num = 0
+        negativos = 0
+        textos_largos = 0
+        total = len(df_datos)
+        
+        for val in df_datos[col]:
+            if pd.isna(val): continue
+            str_val = str(val).strip()
+            if not str_val: continue
+            
+            if es_fecha(str_val):
+                validos_fecha += 1
+                
+            num = extraer_numero(str_val)
+            if num is not None:
+                validos_num += 1
+                if num < 0:
+                    negativos += 1
+                    
+            if not es_fecha(str_val) and num is None and len(str_val) > 10:
+                textos_largos += 1
+                
+        scores_fecha[col] = validos_fecha / total if total else 0
+        scores_numerico[col] = (validos_num, negativos, validos_num / total if total else 0)
+        scores_texto[col] = textos_largos / total if total else 0
+
+    # 1. Detectar Fecha (la columna con mayor score_fecha y > 50%)
+    candidatos_fecha = [c for c, s in scores_fecha.items() if s > 0.5]
+    if candidatos_fecha:
+        # Si hay varios, elegir el primero o el que se llame 'fecha'
+        candidatos_fecha.sort(key=lambda c: (1 if 'fech' in c.lower() else 0, scores_fecha[c]), reverse=True)
+        sugerencias["columna_fecha"] = candidatos_fecha[0]
+
+    # 2. Detectar Descripcion (texto largo)
+    candidatos_desc = [c for c, s in scores_texto.items() if s > 0.4]
+    if candidatos_desc:
+        candidatos_desc.sort(key=lambda c: (1 if 'concept' in c.lower() or 'descrip' in c.lower() else 0, scores_texto[c]), reverse=True)
+        sugerencias["columnas_descripcion"] = [candidatos_desc[0]]
+        
+    # 3. Detectar Importes
+    candidatos_num = [c for c, data in scores_numerico.items() if data[2] > 0.4 and c != sugerencias.get("columna_fecha")]
+    candidatos_num.sort(key=lambda c: (1 if 'cargo' in c.lower() or 'abono' in c.lower() or 'importe' in c.lower() or 'retiro' in c.lower() or 'deposito' in c.lower() else 0, scores_numerico[c][2]), reverse=True)
+    
+    if len(candidatos_num) >= 2:
+        sugerencias["formato"] = "columnas_separadas"
+        # Diferenciar cargo y abono
+        col1 = candidatos_num[0]
+        col2 = candidatos_num[1]
+        # Heuristica de nombre
+        if 'cargo' in col1.lower() or 'retiro' in col1.lower():
+            sugerencias["columna_egresos"] = col1
+            sugerencias["columna_ingresos"] = col2
+        elif 'cargo' in col2.lower() or 'retiro' in col2.lower():
+            sugerencias["columna_egresos"] = col2
+            sugerencias["columna_ingresos"] = col1
+        else:
+            sugerencias["columna_egresos"] = col1
+            sugerencias["columna_ingresos"] = col2
+    elif len(candidatos_num) == 1:
+        col = candidatos_num[0]
+        if scores_numerico[col][1] > 0:
+            sugerencias["formato"] = "columna_con_signo"
+            sugerencias["columna_importe"] = col
+        else:
+            sugerencias["formato"] = "valor_absoluto_y_tipo"
+            sugerencias["columna_importe"] = col
+            
+    return sugerencias
+
+def detectar_fila_y_columnas(df: pd.DataFrame, filas_a_revisar: int = 20) -> tuple[int, dict]:
+    """
+    Intenta buscar la fila de encabezado por saltos de densidad,
+    y luego ejecuta detectar_columnas.
+    """
+    if df.empty: return 0, {}
+    
+    densidades = []
+    for i in range(min(filas_a_revisar, len(df))):
+        fila = df.iloc[i]
+        no_nulos = sum(1 for val in fila if not pd.isna(val) and str(val).strip())
+        densidades.append(no_nulos)
+        
+    mejor_fila = 0
+    # Buscar el mayor salto de densidad
+    for i in range(1, len(densidades)):
+        if densidades[i] > densidades[i-1] and densidades[i] >= 3:
+            # Validar si tiene sentido
+            fila_texto = " ".join([str(v).lower() for v in df.iloc[i] if not pd.isna(v)])
+            if 'fech' in fila_texto or 'concept' in fila_texto or 'cargo' in fila_texto or 'monto' in fila_texto or 'importe' in fila_texto:
+                mejor_fila = i
+                break
+                
+    # Si no encontro nada claro, por defecto 0
+    sugerencias = detectar_columnas(df, mejor_fila)
+    return mejor_fila, sugerencias

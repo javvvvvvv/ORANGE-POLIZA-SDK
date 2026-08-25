@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva regla{% endblock %}
+{% block contenido %}
+<h1 class="text-xl font-semibold text-marino-900 mb-6">Nueva regla</h1>
+
+<datalist id="cuentas-catalogo">
+  {% for c in cuentas %}
+  <option value="{{ c.cuenta }}">{{ c.descripcion }}</option>
+  {% endfor %}
+</datalist>
+
+<form method="post" class="space-y-6">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+    <div class="font-medium text-marino-900">Condiciones</div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm text-slate-600 mb-1">Nombre de la regla</label>
+        <input name="nombre" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm text-slate-600 mb-1">Tipo de movimiento</label>
+        <select name="tipo_movimiento" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">Cualquiera</option>
+          <option value="ingreso">Ingreso</option>
+          <option value="egreso">Egreso</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-600 mb-1">RFC de la contraparte (opcional)</label>
+        <input name="rfc_contraparte" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm text-slate-600 mb-1">Cuenta bancaria contraparte (opcional)</label>
+        <input name="cuenta_bancaria_contraparte" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div class="col-span-2">
+        <label class="block text-sm text-slate-600 mb-1">Palabras clave (separadas por coma)</label>
+        <input name="palabras_clave" placeholder="OXXO, FARMACIAS DEL AHORRO" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm text-slate-600 mb-1">Prioridad</label>
+        <input name="prioridad" type="number" value="100" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        <div class="text-xs text-slate-400 mt-1">Menor número se evalúa primero.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-xl p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="font-medium text-marino-900">Movimientos que genera esta regla</div>
+      <button type="button" onclick="agregarLinea()" class="text-sm text-naranja-600 hover:text-naranja-700">
+        + Agregar movimiento
+      </button>
+    </div>
+
+    <div id="lineas" class="space-y-3"></div>
+
+    <div class="mt-4 text-xs text-slate-500">
+      Variables disponibles para las fórmulas: haz clic en un campo de fórmula y luego en un botón.
+      <div class="flex flex-wrap gap-1 mt-2">
+        {% for v in ["TOTAL", "BASE", "IVA", "RET_IVA", "RET_ISR", "TIPO_CAMBIO", "+", "-", "*", "/", "(", ")"] %}
+        <button type="button" onclick="insertarEnFormula('{{ v }}')"
+                class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-mono text-xs">{{ v }}</button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <button class="bg-naranja-600 hover:bg-naranja-700 text-white font-medium rounded-lg px-6 py-2.5">
+    Guardar regla
+  </button>
+</form>
+
+<template id="plantilla-linea">
+  <div class="linea grid grid-cols-12 gap-2 items-center">
+    <input name="linea_cuenta" placeholder="Cuenta" list="cuentas-catalogo" required class="col-span-3 border border-slate-300 rounded-lg px-2 py-1.5 text-sm font-mono">
+    <select name="linea_naturaleza" class="col-span-2 border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+      <option value="cargo">Cargo</option>
+      <option value="abono">Abono</option>
+    </select>
+    <input name="linea_formula" placeholder="TOTAL / 1.16" required
+           class="col-span-3 border border-slate-300 rounded-lg px-2 py-1.5 text-sm font-mono formula-input"
+           onfocus="formulaActiva = this">
+    <input name="linea_descripcion" placeholder="Descripción (opcional)" class="col-span-3 border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+    <button type="button" onclick="this.closest('.linea').remove()" class="col-span-1 text-red-500 hover:text-red-700 text-sm">Quitar</button>
+  </div>
+</template>
+
+<script>
+  let formulaActiva = null;
+
+  function agregarLinea() {
+    const plantilla = document.getElementById('plantilla-linea').content.cloneNode(true);
+    document.getElementById('lineas').appendChild(plantilla);
+  }
+
+  function insertarEnFormula(valor) {
+    if (!formulaActiva) return;
+    const inicio = formulaActiva.selectionStart || formulaActiva.value.length;
+    const fin = formulaActiva.selectionEnd || formulaActiva.value.length;
+    formulaActiva.value = formulaActiva.value.slice(0, inicio) + valor + formulaActiva.value.slice(fin);
+    formulaActiva.focus();
+  }
+
+  agregarLinea();
+</script>
+{% endblock %}
