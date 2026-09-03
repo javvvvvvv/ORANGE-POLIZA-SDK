@@ -182,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function() {
     </div>
 
     <div>
-      <label class="block text-xs text-slate-500 mb-1">Descripción (marca una o varias, se concatenan)</label>
+      <label class="block text-xs text-slate-500 mb-1">Descripción General (si aplica a ambos)</label>
       <div class="flex flex-wrap gap-3">
         {% for col in columnas %}
         <label class="flex items-center gap-1 text-sm border border-slate-200 rounded-lg px-2 py-1">
@@ -190,6 +190,29 @@ document.addEventListener("DOMContentLoaded", function() {
         </label>
         {% endfor %}
       </div>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Descripción para Ingresos</label>
+          <div class="flex flex-wrap gap-3">
+            {% for col in columnas %}
+            <label class="flex items-center gap-1 text-sm border border-slate-200 rounded-lg px-2 py-1">
+              <input type="checkbox" name="columnas_descripcion_ingresos" value="{{ col }}"> {{ col }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Descripción para Egresos</label>
+          <div class="flex flex-wrap gap-3">
+            {% for col in columnas %}
+            <label class="flex items-center gap-1 text-sm border border-slate-200 rounded-lg px-2 py-1">
+              <input type="checkbox" name="columnas_descripcion_egresos" value="{{ col }}"> {{ col }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
     </div>
 
     <div id="campos-columnas-separadas" class="grid grid-cols-2 gap-4">
@@ -230,12 +253,29 @@ document.addEventListener("DOMContentLoaded", function() {
 
     <div class="grid grid-cols-3 gap-4">
       <div>
-        <label class="block text-xs text-slate-500 mb-1">RFC contraparte (opcional)</label>
+        <label class="block text-xs text-slate-500 mb-1">RFC contraparte (General)</label>
         <select name="columna_rfc" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
           <option value="">—</option>
           {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
         </select>
       </div>
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">RFC (Ingresos)</label>
+        <select name="columna_rfc_ingresos" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">RFC (Egresos)</label>
+        <select name="columna_rfc_egresos" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          {% for col in columnas %}<option value="{{ col }}">{{ col }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4 mt-4">
       <div>
         <label class="block text-xs text-slate-500 mb-1">Referencia bancaria (opcional)</label>
         <select name="columna_referencia" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">

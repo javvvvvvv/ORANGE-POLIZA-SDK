@@ -1,3 +1,17 @@
+﻿# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 import sys
 import os
 from datetime import datetime
@@ -99,8 +113,8 @@ def clasificar_pendientes(empresa_id):
         tasa_ret_isr = 0.0
 
     """Corre el motor de reglas sobre los movimientos pendientes de la
-    empresa y actualiza su estado. Regresa cuántos quedaron
-    automáticos y cuántos siguen pendientes."""
+    empresa y actualiza su estado. Regresa cuÃ¡ntos quedaron
+    automÃ¡ticos y cuÃ¡ntos siguen pendientes."""
     repo = RepositorioReglas()
     reglas, plantillas = repo.cargar_para_motor(empresa_id)
 
@@ -117,6 +131,25 @@ def clasificar_pendientes(empresa_id):
         match = encontrar_regla(mov, reglas)
         if match.regla is None:
             continue
+            
+        cur = con.cursor()
+        cur.execute("""
+            SELECT c.total AS cfdi_total, cm.importe_aplicado,
+                   COALESCE((SELECT SUM(importe) FROM cfdi_impuestos ci WHERE ci.cfdi_id = c.id AND ci.es_retencion = 0 AND ci.tipo_impuesto = 'IVA'), 0) as iva_cfdi
+            FROM cfdis c
+            JOIN cfdi_movimiento cm ON cm.cfdi_id = c.id
+            WHERE cm.movimiento_id = ? AND cm.confirmado = 1
+        """, (fila["id"],))
+        cfdis_asoc = cur.fetchall()
+        
+        if cfdis_asoc:
+            iva_exacto_tot = 0.0
+            for c_asoc in cfdis_asoc:
+                if c_asoc["cfdi_total"] > 0:
+                    prop = min(1.0, float(c_asoc["importe_aplicado"]) / float(c_asoc["cfdi_total"]))
+                    iva_exacto_tot += float(c_asoc["iva_cfdi"]) * prop
+            mov["iva_exacto"] = round(iva_exacto_tot, 2)
+            mov["tiene_iva"] = True if iva_exacto_tot > 0 else False
 
         resultado = generar_poliza(
             movimiento=mov, plantilla=plantillas[match.regla.id],
@@ -169,7 +202,28 @@ def sugerencia_para_movimiento(movimiento_id):
     return mov, sugerir_regla_desde_clasificacion_manual(mov)
 
 
-def generar_polizas_pendientes(empresa_id):
+
+def sugerencia_para_movimiento(movimiento_id):
+    con = get_connection()
+    fila = con.execute("SELECT * FROM movimientos WHERE id = ?", (movimiento_id,)).fetchone()
+    con.close()
+    if not fila:
+        return None, None
+
+    import sys
+    import os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend", "app", "core")))
+    from learning_engine import sugerir_regla_desde_clasificacion_manual
+
+    mov = _fila_a_movimiento_dict(fila)
+    con = get_connection()
+    empresa = con.execute("SELECT rfc FROM empresas WHERE id = ?", (fila["empresa_id"],)).fetchone()
+    con.close()
+    rfc_empresa = empresa["rfc"] if empresa else ""
+
+    return mov, sugerir_regla_desde_clasificacion_manual(mov, rfc_empresa=rfc_empresa)
+
+def generar_polizas_pendientes(empresa_id, inicio_ingreso=None, inicio_egreso=None):
 
     con = get_connection()
     emp_cfg = con.execute("SELECT tasa_iva, tasa_retencion_iva, tasa_retencion_isr FROM empresas WHERE id = ?", (empresa_id,)).fetchone()
@@ -181,8 +235,8 @@ def generar_polizas_pendientes(empresa_id):
         tasa_ret_iva = 0.0
         tasa_ret_isr = 0.0
 
-    """Genera pólizas para todos los movimientos ya clasificados
-    (estado 'automatico' o 'manual') que todavía no tienen póliza."""
+    """Genera pÃ³lizas para todos los movimientos ya clasificados
+    (estado 'automatico' o 'manual') que todavÃ­a no tienen pÃ³liza."""
     con_lic = get_connection()
     empresa_lic = con_lic.execute("SELECT nombre FROM empresas WHERE id = ?", (empresa_id,)).fetchone()
     con_lic.close()
@@ -193,9 +247,12 @@ def generar_polizas_pendientes(empresa_id):
 
     con = get_connection()
     movimientos = con.execute(
-        """SELECT * FROM movimientos
-           WHERE empresa_id = ? AND poliza_id IS NULL
-           AND estado_clasificacion IN ('automatico', 'manual')""",
+        """SELECT m.*, b.cuenta_contable AS cuenta_banco 
+           FROM movimientos m
+           LEFT JOIN documentos_importados d ON d.id = m.documento_id
+           LEFT JOIN bancos b ON b.id = d.banco_id
+           WHERE m.empresa_id = ? AND m.poliza_id IS NULL
+           AND m.estado_clasificacion IN ('automatico', 'manual')""",
         (empresa_id,),
     ).fetchall()
 
@@ -207,6 +264,11 @@ def generar_polizas_pendientes(empresa_id):
         "SELECT COALESCE(MAX(numero), 0) FROM polizas WHERE empresa_id = ? AND tipo = 'egreso'",
         (empresa_id,),
     ).fetchone()[0]
+    
+    if inicio_ingreso is not None and int(inicio_ingreso) > 0 and ultimo_ingreso < int(inicio_ingreso):
+        ultimo_ingreso = int(inicio_ingreso) - 1
+    if inicio_egreso is not None and int(inicio_egreso) > 0 and ultimo_egreso < int(inicio_egreso):
+        ultimo_egreso = int(inicio_egreso) - 1
 
     generadas = 0
     cur = con.cursor()
@@ -222,9 +284,62 @@ def generar_polizas_pendientes(empresa_id):
         cur.execute("SELECT nombre FROM reglas WHERE id = ?", (fila["regla_id"],))
         nombre_regla = cur.fetchone()["nombre"]
 
+        # Buscar CFDIs asociados al movimiento ANTES de generar la poliza
+        cur.execute("""
+            SELECT c.folio, c.uuid, c.nombre_emisor, c.nombre_receptor, c.rfc_emisor, c.rfc_receptor, 
+                   c.total AS cfdi_total, cm.importe_aplicado,
+                   COALESCE((SELECT SUM(importe) FROM cfdi_impuestos ci WHERE ci.cfdi_id = c.id AND ci.es_retencion = 0 AND ci.tipo_impuesto = 'IVA'), 0) as iva_cfdi
+            FROM cfdis c
+            JOIN cfdi_movimiento cm ON cm.cfdi_id = c.id
+            WHERE cm.movimiento_id = ? AND cm.confirmado = 1
+            ORDER BY cm.importe_aplicado DESC
+        """, (fila["id"],))
+        cfdis_asociados = cur.fetchall()
+        
+        # Calcular IVA exacto si hay CFDIs
+        if cfdis_asociados:
+            iva_exacto_total = 0.0
+            for c_asoc in cfdis_asociados:
+                if c_asoc["cfdi_total"] > 0:
+                    proporcion = min(1.0, float(c_asoc["importe_aplicado"]) / float(c_asoc["cfdi_total"]))
+                    iva_exacto_total += float(c_asoc["iva_cfdi"]) * proporcion
+            mov["iva_exacto"] = round(iva_exacto_total, 2)
+            mov["tiene_iva"] = True if iva_exacto_total > 0 else False
+
+
+        p_referencia = mov.get("numero_factura") or ""
+        p_concepto = fila["descripcion"]
+
+        if cfdis_asociados:
+            if len(cfdis_asociados) > 1:
+                folios = []
+                for c_asoc in cfdis_asociados:
+                    if c_asoc["folio"] and c_asoc["folio"].strip():
+                        folios.append(c_asoc["folio"].strip())
+                    else:
+                        folios.append("U" + c_asoc["uuid"][-4:])
+                p_referencia = ", ".join(folios)[:50] # Contpaqi reference limit
+            else:
+                cfdi_asoc = cfdis_asociados[0]
+                if cfdi_asoc["folio"] and cfdi_asoc["folio"].strip():
+                    p_referencia = cfdi_asoc["folio"].strip()
+                else:
+                    p_referencia = "UUID: " + cfdi_asoc["uuid"][-5:]
+            
+            # El concepto lo tomamos del proveedor principal (el de mayor importe)
+            cfdi_principal = cfdis_asociados[0]
+            if fila["tipo"] == "egreso":
+                p_concepto = cfdi_principal["nombre_emisor"] or cfdi_principal["rfc_emisor"]
+            else:
+                p_concepto = cfdi_principal["nombre_receptor"] or cfdi_principal["rfc_receptor"]
+
+        # Intervenir el movimiento para que la poliza y sus lineas asuman el nuevo concepto
+        mov["descripcion"] = p_concepto
+        mov["numero_factura"] = p_referencia
+
         resultado = generar_poliza(
             movimiento=mov, plantilla=plantilla, nombre_regla=nombre_regla,
-            motivo_match="Reclasificación al generar póliza.", tasa_iva=tasa_iva, tasa_ret_iva=tasa_ret_iva, tasa_ret_isr=tasa_ret_isr
+            motivo_match="Reclasificacion al generar poliza.", tasa_iva=tasa_iva, tasa_ret_iva=tasa_ret_iva, tasa_ret_isr=tasa_ret_isr
         )
         if not resultado.cuadrada:
             continue
@@ -235,11 +350,11 @@ def generar_polizas_pendientes(empresa_id):
         else:
             ultimo_egreso += 1
             numero = ultimo_egreso
-
+        
         cur.execute(
-            """INSERT INTO polizas (empresa_id, tipo, numero, fecha, referencia, cuadrada)
-               VALUES (?, ?, ?, ?, ?, 1)""",
-            (empresa_id, fila["tipo"], numero, fila["fecha"], mov["numero_factura"]),
+            """INSERT INTO polizas (empresa_id, tipo, numero, fecha, referencia, concepto, cuadrada)
+               VALUES (?, ?, ?, ?, ?, ?, 1)""",
+            (empresa_id, fila["tipo"], numero, fila["fecha"], p_referencia, p_concepto),
         )
         poliza_id = cur.lastrowid
 
@@ -319,7 +434,7 @@ def exportar_polizas(empresa_id, ruta_salida):
         cfdi_filas = con.execute(
             """SELECT cm.importe_aplicado, c.id AS cfdi_id, c.uuid, c.serie, c.folio,
                       c.total AS cfdi_total, c.tipo AS cfdi_tipo,
-                      c.rfc_emisor, c.rfc_receptor
+                      c.rfc_emisor, c.rfc_receptor, c.uuids_relacionados
                FROM cfdi_movimiento cm JOIN cfdis c ON c.id = cm.cfdi_id
                WHERE cm.movimiento_id = ? AND cm.confirmado = 1""",
             (mov_db["id"] if mov_db else -1,),
@@ -341,6 +456,14 @@ def exportar_polizas(empresa_id, ruta_salida):
             cuenta_banco_mov = cuenta_banco_real.replace("-", "")
 
             for cf in cfdi_filas:
+                # Si el CFDI es de Pago (REP) y tiene un UUID relacionado de la factura origen,
+                # usamos el UUID de la factura para la poliza y el F4. Si trae varios, tomamos el primero.
+                uuid_final = cf["uuid"]
+                if cf.get("uuids_relacionados"):
+                    uuids_lista = cf["uuids_relacionados"].split(",")
+                    if uuids_lista and uuids_lista[0].strip():
+                        uuid_final = uuids_lista[0].strip()
+                
                 factor = (cf["importe_aplicado"] / cf["cfdi_total"]) if cf["cfdi_total"] else 1.0
                 impuestos_db = con.execute(
                     "SELECT * FROM cfdi_impuestos WHERE cfdi_id = ?", (cf["cfdi_id"],)
@@ -362,27 +485,27 @@ def exportar_polizas(empresa_id, ruta_salida):
                     cf["rfc_emisor"] if cf["cfdi_tipo"] == "recibido" else cf["rfc_receptor"]
                 ) or ""
                 facturas.append(FacturaAplicada(
-                    uuid=cf["uuid"], serie=cf["serie"] or "", folio=cf["folio"] or "",
+                    uuid=uuid_final, serie=cf["serie"] or "", folio=cf["folio"] or "",
                     rfc_persona=rfc_persona, impuestos=impuestos_factura,
                 ))
                 cfdi_impuestos.extend(impuestos_factura)
 
-            # Compatibilidad hacia atrás (un solo CFDI): se llenan también
-            # los campos singulares por si algo más los sigue leyendo.
+            # Compatibilidad hacia atrÃ¡s (un solo CFDI): se llenan tambiÃ©n
+            # los campos singulares por si algo mÃ¡s los sigue leyendo.
             if len(facturas) == 1:
                 cfdi_uuid, cfdi_serie, cfdi_folio = facturas[0].uuid, facturas[0].serie, facturas[0].folio
         elif mov_db and (mov_db["afectable_impuestos"] is None or mov_db["afectable_impuestos"]):
-            # Sin CFDI conciliado, pero el movimiento SÍ afecta impuestos
-            # (se clasificó a mano): igual debe llevar F4/F6. Si se marcó
-            # "aplica IVA" al clasificarlo, la línea de IVA que ya generó
+            # Sin CFDI conciliado, pero el movimiento SÃ afecta impuestos
+            # (se clasificÃ³ a mano): igual debe llevar F4/F6. Si se marcÃ³
+            # "aplica IVA" al clasificarlo, la lÃ­nea de IVA que ya generÃ³
             # policy_generator (contra la cuenta de IVA acreditable/
-            # trasladado configurada) nos dice cuánto es; si no se marcó,
+            # trasladado configurada) nos dice cuÃ¡nto es; si no se marcÃ³,
             # se llena en exento (base = total, IVA = 0, tasa = 0).
             #
-            # Las RETENCIONES NO tienen método alterno: solo existen si
+            # Las RETENCIONES NO tienen mÃ©todo alterno: solo existen si
             # vienen del CFDI (<Retenciones> del XML). Sin CFDI conciliado
-            # no se calcula ni se estima ninguna retención aquí — decisión
-            # explícita del usuario, no un pendiente.
+            # no se calcula ni se estima ninguna retenciÃ³n aquÃ­ â€” decisiÃ³n
+            # explÃ­cita del usuario, no un pendiente.
             cuenta_banco_mov = cuenta_banco_real.replace("-", "")
             cuenta_iva_esperada = (
                 empresa["cuenta_iva_acreditable"] if p["tipo"] == "egreso"
@@ -408,7 +531,7 @@ def exportar_polizas(empresa_id, ruta_salida):
         movimientos_poliza.append(MovimientoPoliza(
             numero_poliza=p["numero"], tipo=p["tipo"],
             fecha=datetime.strptime(p["fecha"], "%Y-%m-%d"),
-            descripcion=mov_db["descripcion"] if mov_db else "",
+            descripcion=p.get("concepto") or (mov_db["descripcion"] if mov_db else ""),
             lineas=lineas, tiene_iva=bool(cfdi_uuid or facturas),
             numero_factura=p["referencia"] or "",
             cfdi_uuid=cfdi_uuid, cfdi_serie=cfdi_serie, cfdi_folio=cfdi_folio,
@@ -416,8 +539,46 @@ def exportar_polizas(empresa_id, ruta_salida):
         ))
 
     con.close()
-    # Salida en .txt (layout de importación de Contpaqi), ya no .xls: el
-    # archivo de Excel salía del proceso de conversión con LibreOffice,
-    # que ya no se usa para esta exportación.
+    # Salida en .txt (layout de importaciÃ³n de Contpaqi), ya no .xls: el
+    # archivo de Excel salÃ­a del proceso de conversiÃ³n con LibreOffice,
+    # que ya no se usa para esta exportaciÃ³n.
     return exportar_polizas_contpaqi_txt(movimientos_poliza, ruta_salida,
                                           nombre_empresa=empresa["nombre"] if empresa else None)
+
+
+def limpiar_polizas(empresa_id):
+    from db import get_connection
+    con = get_connection()
+    try:
+        # Get poliza ids
+        polizas = con.execute("SELECT id FROM polizas WHERE empresa_id = ?", (empresa_id,)).fetchall()
+        p_ids = [p["id"] for p in polizas]
+        if p_ids:
+            # PostgreSQL doesn't support '?' with IN clause easily without formatting if we use standard DB-API, but we use translated placeholders in db.py.
+            # Let's just do it manually
+            for p_id in p_ids:
+                con.execute("DELETE FROM poliza_lineas WHERE poliza_id = ?", (p_id,))
+                con.execute("DELETE FROM poliza_auditoria WHERE poliza_id = ?", (p_id,))
+                con.execute("UPDATE movimientos SET poliza_id = NULL WHERE poliza_id = ?", (p_id,))
+            con.execute("DELETE FROM polizas WHERE empresa_id = ?", (empresa_id,))
+            con.commit()
+    finally:
+        con.close()
+
+def limpiar_movimientos(empresa_id):
+    from db import get_connection
+    con = get_connection()
+    try:
+        # Limpiar todo
+        limpiar_polizas(empresa_id)
+        
+        # Eliminar movimientos
+        con.execute("DELETE FROM cfdi_movimiento WHERE movimiento_id IN (SELECT id FROM movimientos WHERE empresa_id = ?)", (empresa_id,))
+        con.execute("DELETE FROM movimientos WHERE empresa_id = ?", (empresa_id,))
+        
+        # Opcional: Eliminar documentos importados si pertenecen a esta empresa (wait, no empresa_id in documentos_importados? Yes there is in importacion_repo. But usually we don't delete documentos_importados unless it has empresa_id).
+        con.execute("DELETE FROM documentos_importados WHERE empresa_id = ?", (empresa_id,))
+        con.commit()
+    finally:
+        con.close()
+

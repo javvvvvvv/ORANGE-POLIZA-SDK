@@ -1,5 +1,19 @@
-# -*- coding: utf-8 -*-
-"""Conciliador determinístico de CFDI contra movimientos bancarios
+﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
+"""Conciliador determinÃ­stico de CFDI contra movimientos bancarios
 (1 CFDI : 1 movimiento). Ver `conciliador_avanzado.py` para los casos
 N:1, 1:N y pagos parciales."""
 
@@ -74,7 +88,7 @@ def conciliar(
                 "motivo": (
                     f"Ni el RFC emisor ({cfdi.rfc_emisor}) ni el receptor "
                     f"({cfdi.rfc_receptor}) coinciden con el RFC de la "
-                    f"empresa ({rfc_empresa}). ¿Es un CFDI de otra empresa?"
+                    f"empresa ({rfc_empresa}). Â¿Es un CFDI de otra empresa?"
                 ),
             })
             continue
@@ -103,13 +117,13 @@ def conciliar(
                     f"El RFC del movimiento ({rfc_mov}) coincide con el "
                     f"{'receptor' if tipo == 'emitido' else 'emisor'} del CFDI, "
                     f"el importe coincide exactamente (${cfdi.total:,.2f}) y la "
-                    f"fecha está dentro de {ventana_dias} días."
+                    f"fecha estÃ¡ dentro de {ventana_dias} dÃ­as."
                 )
             else:
                 confianza = _CFG["cf"][1]
                 motivo = (
                     f"El importe coincide exactamente (${cfdi.total:,.2f}) y la "
-                    f"fecha está dentro de {ventana_dias} días, pero el "
+                    f"fecha estÃ¡ dentro de {ventana_dias} dÃ­as, pero el "
                     f"movimiento no trae RFC para confirmarlo del todo."
                 )
 
@@ -130,8 +144,8 @@ def conciliar(
             cfdis_sin_movimiento.append({
                 "cfdi": cfdi,
                 "motivo": (
-                    f"No se encontró ningún movimiento de tipo '{tipo_mov_esperado}' "
-                    f"por ${cfdi.total:,.2f} dentro de {ventana_dias} días de la "
+                    f"No se encontrÃ³ ningÃºn movimiento de tipo '{tipo_mov_esperado}' "
+                    f"por ${cfdi.total:,.2f} dentro de {ventana_dias} dÃ­as de la "
                     f"fecha del CFDI ({cfdi.fecha.strftime('%d/%m/%Y')})."
                 ),
             })
@@ -153,3 +167,4 @@ def aplicar_conciliaciones_a_movimientos(conciliaciones: list[ConciliacionCFDI])
             {"base": t.base, "importe": t.importe, "tasa": t.tasa}
             for t in cfdi.impuestos_trasladados
         ]
+

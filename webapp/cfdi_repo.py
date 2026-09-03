@@ -1,3 +1,17 @@
+﻿# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 import os
 import sys
 import uuid
@@ -16,10 +30,10 @@ UMBRAL_AUTOCONFIRMAR = 95  # solo 'exacto' (100) se aplica solo; el resto se rev
 def importar_y_conciliar(empresa_id, rutas_xml, rfc_empresa, ventana_dias=45, tipo_hint=None):
     """
     :param tipo_hint: 'emitido' | 'recibido' | None. Si el usuario ya
-        indicó desde qué botón subió el archivo (Emitidos/Recibidos),
-        se usa directo en vez de adivinar por el RFC de la empresa —
-        más confiable si el RFC de la empresa no está bien capturado en
-        Configuración todavía.
+        indicÃ³ desde quÃ© botÃ³n subiÃ³ el archivo (Emitidos/Recibidos),
+        se usa directo en vez de adivinar por el RFC de la empresa â€”
+        mÃ¡s confiable si el RFC de la empresa no estÃ¡ bien capturado en
+        ConfiguraciÃ³n todavÃ­a.
     """
     con = get_connection()
     cur = con.cursor()
@@ -49,10 +63,10 @@ def importar_y_conciliar(empresa_id, rutas_xml, rfc_empresa, ventana_dias=45, ti
             )
         cur.execute(
             """INSERT INTO cfdis
-               (empresa_id, uuid, tipo, rfc_emisor, rfc_receptor, fecha, total,
+               (empresa_id, uuid, tipo, rfc_emisor, nombre_emisor, rfc_receptor, nombre_receptor, fecha, total,
                 subtotal, serie, folio, archivo_origen)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (empresa_id, cfdi.uuid, tipo, cfdi.rfc_emisor, cfdi.rfc_receptor,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (empresa_id, cfdi.uuid, tipo, cfdi.rfc_emisor, cfdi.nombre_emisor, cfdi.rfc_receptor, cfdi.nombre_receptor,
              cfdi.fecha.strftime("%Y-%m-%d"), cfdi.total, cfdi.subtotal,
              cfdi.serie, cfdi.folio, ruta),
         )
@@ -66,10 +80,10 @@ def importar_y_conciliar(empresa_id, rutas_xml, rfc_empresa, ventana_dias=45, ti
                 (cfdi_id, imp.base, imp.importe, imp.tasa),
             )
         # Las retenciones del CFDI (<Retenciones>) no traen Base ni
-        # TasaOCuota en el XML — se usa el SubTotal del comprobante como
-        # base (así viene en pólizas reales con retenciones) y se
+        # TasaOCuota en el XML â€” se usa el SubTotal del comprobante como
+        # base (asÃ­ viene en pÃ³lizas reales con retenciones) y se
         # calcula la tasa a partir de eso, para poder llenar F4 igual
-        # que una línea de traslado.
+        # que una lÃ­nea de traslado.
         catalogo_impuesto_sat = {"001": "ISR", "002": "IVA", "003": "IEPS"}
         for ret in cfdi.impuestos_retenidos:
             tipo = catalogo_impuesto_sat.get(ret.impuesto, "IVA")
@@ -84,9 +98,9 @@ def importar_y_conciliar(empresa_id, rutas_xml, rfc_empresa, ventana_dias=45, ti
     con.commit()
 
     # -----------------------------------------------------------------
-    # Conciliar TODOS los CFDI de la empresa que aún no tienen ninguna
-    # fila en cfdi_movimiento contra TODOS los movimientos que aún no
-    # están conciliados. Así, si subes CFDIs antes o después del Excel,
+    # Conciliar TODOS los CFDI de la empresa que aÃºn no tienen ninguna
+    # fila en cfdi_movimiento contra TODOS los movimientos que aÃºn no
+    # estÃ¡n conciliados. AsÃ­, si subes CFDIs antes o despuÃ©s del Excel,
     # igual se cruzan.
     # -----------------------------------------------------------------
     cfdis_db = cur.execute(
@@ -138,7 +152,7 @@ def importar_y_conciliar(empresa_id, rutas_xml, rfc_empresa, ventana_dias=45, ti
     conciliados_resumen = []
     for propuesta in propuestas:
         grupo_id = uuid.uuid4().hex
-        auto_confirmar = propuesta.tipo_match == "exacto" and propuesta.confianza >= UMBRAL_AUTOCONFIRMAR
+        auto_confirmar = True # Autoconfirmamos todas las sugerencias avanzadas (N:1, 1:N, parciales) por peticion del usuario
 
         for aplicacion in propuesta.aplicaciones:
             cfdi_id = mapa_cfdi_id[id(aplicacion.cfdi)]
@@ -228,10 +242,10 @@ def confirmar_propuesta(grupo_id):
         )
         if not (mov_actual["rfc_contraparte"] or "").strip():
             # No sabemos con certeza si nosotros somos emisor o receptor
-            # aquí (podría ser cualquiera); dejamos que rfc_contraparte
-            # se complete solo cuando el tipo de match ya lo determinó
-            # (esto se resuelve mejor en el flujo de auto-confirmación;
-            # aquí solo evitamos sobreescribir con un valor incorrecto).
+            # aquÃ­ (podrÃ­a ser cualquiera); dejamos que rfc_contraparte
+            # se complete solo cuando el tipo de match ya lo determinÃ³
+            # (esto se resuelve mejor en el flujo de auto-confirmaciÃ³n;
+            # aquÃ­ solo evitamos sobreescribir con un valor incorrecto).
             pass
 
     con.commit()
@@ -243,3 +257,4 @@ def rechazar_propuesta(grupo_id):
     con.execute("DELETE FROM cfdi_movimiento WHERE grupo_id = ?", (grupo_id,))
     con.commit()
     con.close()
+

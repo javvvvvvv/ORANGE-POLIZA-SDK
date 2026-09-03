@@ -269,6 +269,12 @@ def _aplicar_migraciones(con: Connection):
         ("movimientos", "afectable_impuestos", "INTEGER"),
         ("cfdi_impuestos", "es_retencion", "INTEGER NOT NULL DEFAULT 0"),
         ("cfdi_impuestos", "tipo_impuesto", "TEXT NOT NULL DEFAULT 'IVA'"),
+        ("empresas", "sql_servidor", "TEXT"),
+        ("empresas", "sql_usuario", "TEXT"),
+        ("empresas", "sql_password", "TEXT"),
+        ("empresas", "sql_base_datos", "TEXT"),
+        ("polizas", "concepto", "TEXT"),
+        ("cfdis", "uuids_relacionados", "TEXT"),
     ]
     cur = con.cursor()
 

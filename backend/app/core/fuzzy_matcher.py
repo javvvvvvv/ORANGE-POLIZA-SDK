@@ -1,6 +1,20 @@
-# -*- coding: utf-8 -*-
-"""Motor de coincidencia difusa (fuzzy matching) de último recurso;
-ver `rule_engine.py` para dónde entra en el orden de prioridad."""
+﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
+"""Motor de coincidencia difusa (fuzzy matching) de Ãºltimo recurso;
+ver `rule_engine.py` para dÃ³nde entra en el orden de prioridad."""
 
 import base64
 import difflib
@@ -79,6 +93,13 @@ def similitud_combinada(descripcion: str, palabra_clave: str) -> float:
         return similitud_caracteres(descripcion, palabra_clave)
 
     scores = [_mejor_score_para_token(t, tokens_desc) for t in tokens_clave]
+    
+    # Todos los tokens de la palabra clave deben estar presentes con al menos un 70% de similitud.
+    # Si un token de la regla falta por completo (ej: ELISA MARIA vs MARIA GUADALUPE),
+    # no deberia hacer match.
+    if any(s < 0.70 for s in scores):
+        return 0.0
+        
     return round(sum(scores) / len(scores), 4)
 
 
@@ -105,3 +126,4 @@ def buscar_mejor_coincidencia_difusa(
 def confianza_desde_similitud(similitud: float) -> int:
     a, b = _CFG["cf"]
     return int(round(a + similitud * b))
+

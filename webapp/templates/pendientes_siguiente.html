@@ -30,31 +30,47 @@
     <div>
       <div class="text-lg font-medium text-marino-900">{{ movimiento.descripcion }}</div>
       <div class="text-sm text-slate-500 mt-1">
-        {{ movimiento.fecha }} ·
+        {{ movimiento.fecha }} — 
         <span class="{{ 'text-emerald-600' if movimiento.tipo == 'ingreso' else 'text-rose-600' }}">
           {{ 'Ingreso' if movimiento.tipo == 'ingreso' else 'Egreso' }}
         </span>
-        {% if movimiento.rfc_contraparte %} · RFC {{ movimiento.rfc_contraparte }}{% endif %}
+        {% if movimiento.rfc_contraparte %} — RFC {{ movimiento.rfc_contraparte }}{% endif %}
+      </div>
+      <div class="text-xs text-slate-400 mt-1 flex gap-3">
+        {% if movimiento.cuenta_bancaria_contraparte %}
+        <span><strong>Cuenta:</strong> {{ movimiento.cuenta_bancaria_contraparte }}</span>
+        {% endif %}
+        {% if movimiento.referencia_bancaria %}
+        <span><strong>Ref:</strong> {{ movimiento.referencia_bancaria }}</span>
+        {% endif %}
       </div>
     </div>
     <div class="text-2xl font-semibold text-marino-900">${{ "%.2f"|format(movimiento.total) }}</div>
   </div>
 
-  {% if sugerencia %}
-  <div class="text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2 mb-4">
-    {{ sugerencia.explicacion }}
-  </div>
-  {% endif %}
-
   {% if cfdi_info %}
-  <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-4 text-sm">
-    <div class="font-medium text-emerald-800">
-      ✓ Este movimiento ya tiene factura asociada: {{ cfdi_info.serie }}{{ cfdi_info.folio }}
+  <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 mb-4 text-sm shadow-sm">
+    <div class="flex justify-between items-start mb-2 border-b border-emerald-100 pb-2">
+      <div class="font-medium text-emerald-800 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        Factura Asociada: {{ cfdi_info.serie or '' }} {{ cfdi_info.folio or '' }}
+      </div>
+      <div class="text-emerald-700 font-medium">Total: ${{ "%.2f"|format(cfdi_info.total or 0) }}</div>
     </div>
-    <div class="text-xs text-emerald-700 mt-1">
-      Base ${{ "%.2f"|format(cfdi_info.base or 0) }} · IVA ${{ "%.2f"|format(cfdi_info.iva_importe or 0) }}
-      ({{ ((cfdi_info.tasa or 0) * 100)|round(0, 'floor')|int }}%). No hace falta que confirmes IVA:
-      el sistema ya lo sabe por la factura. Solo indica a qué cuenta va.
+    <div class="grid grid-cols-2 gap-2 text-xs text-emerald-700 mb-2">
+        <div>
+          <strong>Emisor:</strong> {{ cfdi_info.rfc_emisor }}
+          {% if movimiento.tipo == 'egreso' and cfdi_info.nombre_emisor %}<br><span class="text-[10px]">{{ cfdi_info.nombre_emisor }}</span>{% endif %}
+        </div>
+        <div>
+          <strong>Receptor:</strong> {{ cfdi_info.rfc_receptor }}
+          {% if movimiento.tipo == 'ingreso' and cfdi_info.nombre_receptor %}<br><span class="text-[10px]">{{ cfdi_info.nombre_receptor }}</span>{% endif %}
+        </div>
+    </div>
+    <div class="text-xs text-emerald-600 bg-emerald-100/50 rounded p-2">
+      Base ${{ "%.2f"|format(cfdi_info.base or 0) }} — IVA ${{ "%.2f"|format(cfdi_info.iva_importe or 0) }}
+      ({{ ((cfdi_info.tasa or 0) * 100)|round(0, 'floor')|int }}%). 
+      <br><em>No hace falta que confirmes IVA, el sistema lo cuadrará automáticamente.</em>
     </div>
   </div>
   {% endif %}
@@ -62,7 +78,21 @@
   <form method="post" action="/empresas/{{ request.view_args.empresa_id }}/pendientes/{{ movimiento.id }}/asignar-rapido" class="space-y-4">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div>
-      <label class="block text-sm text-slate-600 mb-1">¿A qué cuenta va este movimiento?</label>
+      
+  {% if sugerencia_ai %}
+  <div class="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-3 shadow-sm">
+    <div class="flex items-center gap-2 text-orange-800 text-sm font-semibold mb-1">
+      <svg class="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 11a1 1 0 112 0v2a1 1 0 11-2 0v-2zm1-4a1 1 0 110 2 1 1 0 010-2z"></path></svg>
+      Orange Intelligence Predict:
+    </div>
+    <div class="text-xs text-orange-700">
+      Basado en el historial y Normas Contables (NIF), sugerimos reclasificar este movimiento a: <br>
+      <strong class="bg-orange-100 px-2 py-1 mt-1 inline-block rounded border border-orange-200">{{ sugerencia_ai }}</strong>
+    </div>
+  </div>
+  {% endif %}
+
+  <label class="block text-sm text-slate-600 mb-1">¿A qué cuenta va este movimiento?</label>
       <input name="cuenta_contraparte" list="cuentas-catalogo" required autofocus
              placeholder="Busca por número o descripción..."
              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
@@ -89,7 +119,21 @@
     {% endif %}
 
     <div>
-      <label class="block text-sm text-slate-600 mb-1">Cuenta de banco (la contrapartida de este movimiento)</label>
+      
+  {% if sugerencia_ai %}
+  <div class="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-3 shadow-sm">
+    <div class="flex items-center gap-2 text-orange-800 text-sm font-semibold mb-1">
+      <svg class="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 11a1 1 0 112 0v2a1 1 0 11-2 0v-2zm1-4a1 1 0 110 2 1 1 0 010-2z"></path></svg>
+      Orange Intelligence Predict:
+    </div>
+    <div class="text-xs text-orange-700">
+      Basado en el historial y Normas Contables (NIF), sugerimos reclasificar este movimiento a: <br>
+      <strong class="bg-orange-100 px-2 py-1 mt-1 inline-block rounded border border-orange-200">{{ sugerencia_ai }}</strong>
+    </div>
+  </div>
+  {% endif %}
+
+  <label class="block text-sm text-slate-600 mb-1">Cuenta de banco (la contrapartida de este movimiento)</label>
       <input name="cuenta_banco" list="cuentas-catalogo"
              value="{{ banco.cuenta_contable if banco else '' }}"
              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">

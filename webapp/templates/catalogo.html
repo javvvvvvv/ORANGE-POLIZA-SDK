@@ -32,6 +32,14 @@
         Importar
       </button>
     </form>
+    <div class="bg-white border border-slate-200 rounded-xl p-6">
+    <div class="font-medium text-marino-900 mb-3">Sincronizacion Directa CONTPAQi</div>
+    <div class="text-xs text-slate-500 mb-3">Extrae el catalogo conectandose directamente a la base de datos SQL Server configurada en Ajustes.</div>
+    <form method="post" class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="modo" value="contpaqi">
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg px-4 py-2 mt-2">Extraer Catalogo desde CONTPAQi</button>
+    </form>
   </div>
 </div>
 

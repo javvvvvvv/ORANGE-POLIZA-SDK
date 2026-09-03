@@ -1,4 +1,18 @@
 ﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 import os
 import datetime
 from db import get_connection
@@ -27,3 +41,4 @@ def reactivar_suscripcion(org_id, dias=30):
     con.execute("UPDATE organizaciones SET estado_suscripcion = 'activa', fecha_vencimiento = ? WHERE id = ?", (nueva_fecha, org_id))
     con.commit()
     con.close()
+

@@ -9,7 +9,10 @@ import os
 import uuid
 import tempfile
 import shutil
-from flask import Blueprint, flash, g, redirect, render_template, request, session, url_for, send_file, send_from_directory
+from flask import Blueprint, flash, g, redirect, render_template, request, session, url_for, send_file, send_from_directory, current_app
+from authlib.integrations.flask_client import OAuth
+
+oauth = OAuth()
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from auth import login_required, empresa_requerida, obtener_empresas_del_usuario
@@ -191,8 +194,6 @@ def google_autorizado():
             return redirect(url_for('auth.login'))
             
         correo = user_info.get('email', '').strip().lower()
-        
-        
              
         con = get_connection()
         usuario = con.execute("SELECT * FROM usuarios WHERE correo = ? OR usuario = ? LIMIT 1", (correo, correo)).fetchone()
@@ -212,67 +213,5 @@ def google_autorizado():
             return redirect(url_for("auth.login"))
             
     except Exception as e:
-        flash("Modo de prueba (Mock): Si no has configurado tus Google Keys, el SSO simulado fallará al verificar el token real.", "error")
-        
-        
-        return redirect(url_for("auth.login"))
-
-@auth_bp.route("/login/microsoft")
-def login_microsoft():
-    oauth.init_app(current_app)
-    if not oauth.create_client('microsoft'):
-        oauth.register(
-            name='microsoft',
-            client_id=os.environ.get('MS_CLIENT_ID', 'mock_ms_id'),
-            client_secret=os.environ.get('MS_CLIENT_SECRET', 'mock_ms_secret'),
-            server_metadata_url='https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
-            client_kwargs={'scope': 'openid email profile'}
-        )
-    redirect_uri = url_for('auth.microsoft_autorizado', _external=True)
-    return oauth.microsoft.authorize_redirect(redirect_uri)
-
-@auth_bp.route("/login/microsoft/autorizado")
-def microsoft_autorizado():
-    oauth.init_app(current_app)
-    if not oauth.create_client('microsoft'):
-        oauth.register(
-            name='microsoft',
-            client_id=os.environ.get('MS_CLIENT_ID', 'mock_ms_id'),
-            client_secret=os.environ.get('MS_CLIENT_SECRET', 'mock_ms_secret'),
-            server_metadata_url='https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
-            client_kwargs={'scope': 'openid email profile'}
-        )
-        
-    try:
-        token = oauth.microsoft.authorize_access_token()
-        user_info = token.get('userinfo')
-        if not user_info:
-            flash("No se pudo obtener información de Microsoft.", "error")
-            return redirect(url_for('auth.login'))
-            
-        correo = user_info.get('email', '').strip().lower()
-        if not correo:
-            correo = user_info.get('preferred_username', '').strip().lower()
-            
-        
-             
-        con = get_connection()
-        usuario = con.execute("SELECT * FROM usuarios WHERE correo = ? OR usuario = ? LIMIT 1", (correo, correo)).fetchone()
-        
-        if usuario:
-            if usuario["activo"] != 1:
-                flash("Tu cuenta está desactivada.", "error")
-                return redirect(url_for("auth.login"))
-            session.clear()
-            session["usuario_id"] = usuario["id"]
-            session["rol_global"] = usuario["rol_global"]
-            session["organizacion_id"] = usuario["organizacion_id"]
-            return redirect(url_for("empresas.selector_empresas"))
-        else:
-            flash(f"El correo {correo} no está registrado en ningún despacho.", "error")
-            return redirect(url_for("auth.login"))
-            
-    except Exception as e:
-        flash("Modo de prueba (Mock MS): Las llaves de Microsoft no están configuradas.", "error")
-        
+        flash(f"Error al verificar la identidad: {str(e)}", "error")
         return redirect(url_for("auth.login"))

@@ -1,7 +1,21 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 """Motor de reglas de Orange Poliza Engine: dado un movimiento y las
-reglas activas de una empresa, decide qué plantilla contable aplica.
-Orden de prioridad: RFC exacto > cuenta bancaria exacta > descripción
+reglas activas de una empresa, decide quÃ© plantilla contable aplica.
+Orden de prioridad: RFC exacto > cuenta bancaria exacta > descripciÃ³n
 exacta > contiene palabra clave > similitud difusa > sin coincidencia."""
 
 import base64
@@ -54,15 +68,15 @@ class Regla:
     prioridad: int
     activa: bool
 
-    # Condiciones (cualquiera que esté presente se evalúa; todas las
+    # Condiciones (cualquiera que estÃ© presente se evalÃºa; todas las
     # presentes deben cumplirse para que la regla aplique)
     rfc_contraparte: Optional[str] = None
     cuenta_bancaria_contraparte: Optional[str] = None
-    descripcion_exacta: Optional[str] = None       # comparación normalizada exacta
+    descripcion_exacta: Optional[str] = None       # comparaciÃ³n normalizada exacta
     descripcion_contiene: list = field(default_factory=list)  # lista de palabras clave
     tipo_movimiento: Optional[str] = None           # 'ingreso' | 'egreso' | None (cualquiera)
 
-    # Qué generar si la regla aplica
+    # QuÃ© generar si la regla aplica
     plantilla_id: int = None
 
 
@@ -71,7 +85,7 @@ class MatchResult:
     """Resultado de tratar de encontrar una regla para un movimiento."""
     regla: Optional[Regla]
     confianza: int  # 0-100
-    motivo: str      # explicación humana de por qué (o por qué no) hizo match
+    motivo: str      # explicaciÃ³n humana de por quÃ© (o por quÃ© no) hizo match
     nivel: str        # 'rfc' | 'cuenta_bancaria' | 'exacta' | 'contiene' | 'sin_coincidencia'
 
 
@@ -79,6 +93,8 @@ def encontrar_regla(movimiento: dict, reglas: list[Regla]) -> MatchResult:
     descripcion_norm = normalizar_texto(movimiento.get("descripcion", ""))
     tipo_mov = movimiento.get("tipo")
     rfc_mov = (movimiento.get("rfc_contraparte") or "").strip().upper()
+    if rfc_mov in {"ND", "N/A", "NA", "N.D.", "N.A.", "XAXX010101000", "XEXX010101000", "000000000000", "XXX"}:
+        rfc_mov = ""
     cuenta_mov = (movimiento.get("cuenta_bancaria_contraparte") or "").strip()
 
     reglas_activas = [r for r in reglas if r.activa]
@@ -111,21 +127,22 @@ def encontrar_regla(movimiento: dict, reglas: list[Regla]) -> MatchResult:
                 nivel="cuenta_bancaria",
             )
 
-    # --- Nivel 3: descripción normalizada exacta ---
+    # --- Nivel 3: descripcion exacta ---
     for regla in reglas_ordenadas:
         if regla.descripcion_exacta:
-            if normalizar_texto(regla.descripcion_exacta) == descripcion_norm:
+            desc_original = movimiento.get("descripcion", "")
+            if regla.descripcion_exacta.strip().upper() == desc_original.strip().upper():
                 if regla.tipo_movimiento and regla.tipo_movimiento != tipo_mov:
                     continue
                 return MatchResult(
                     regla=regla,
                     confianza=100,
-                    motivo=f"La descripción normalizada ('{descripcion_norm}') "
+                    motivo=f"La descripciÃ³n ('{desc_original}') "
                            f"coincide exactamente con la regla '{regla.nombre}'.",
                     nivel="exacta",
                 )
 
-    # --- Nivel 4: descripción contiene alguna palabra clave ---
+    # --- Nivel 4: descripciÃ³n contiene alguna palabra clave ---
     mejor_match = None
     mejor_confianza = -1
     for regla in reglas_ordenadas:
@@ -141,7 +158,7 @@ def encontrar_regla(movimiento: dict, reglas: list[Regla]) -> MatchResult:
                     mejor_match = MatchResult(
                         regla=regla,
                         confianza=confianza,
-                        motivo=f"La descripción contiene la palabra clave "
+                        motivo=f"La descripciÃ³n contiene la palabra clave "
                                f"'{palabra_clave}' configurada en la regla "
                                f"'{regla.nombre}'.",
                         nivel="contiene",
@@ -157,8 +174,6 @@ def encontrar_regla(movimiento: dict, reglas: list[Regla]) -> MatchResult:
             continue
         for palabra_clave in regla.descripcion_contiene:
             candidatos.append((normalizar_texto(palabra_clave), regla))
-        if regla.descripcion_exacta:
-            candidatos.append((normalizar_texto(regla.descripcion_exacta), regla))
 
     if candidatos:
         mejor_score = -1.0
@@ -174,7 +189,7 @@ def encontrar_regla(movimiento: dict, reglas: list[Regla]) -> MatchResult:
                 regla=mejor_regla_difusa,
                 confianza=confianza_desde_similitud(mejor_score),
                 motivo=(
-                    f"La descripción '{descripcion_norm}' se parece "
+                    f"La descripciÃ³n '{descripcion_norm}' se parece "
                     f"({round(mejor_score * 100)}% de similitud, considerando "
                     f"abreviaturas y orden distinto de palabras) a lo que ya "
                     f"reconoce la regla '{mejor_regla_difusa.nombre}'."
@@ -186,8 +201,9 @@ def encontrar_regla(movimiento: dict, reglas: list[Regla]) -> MatchResult:
     return MatchResult(
         regla=None,
         confianza=0,
-        motivo="Ningún RFC, cuenta bancaria, descripción exacta, palabra clave "
+        motivo="NingÃºn RFC, cuenta bancaria, descripciÃ³n exacta, palabra clave "
                "ni similitud difusa coincide con este movimiento. Se necesita "
-               "clasificación manual para crear una regla nueva.",
+               "clasificaciÃ³n manual para crear una regla nueva.",
         nivel="sin_coincidencia",
     )
+

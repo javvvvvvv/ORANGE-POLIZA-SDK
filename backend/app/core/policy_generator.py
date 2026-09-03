@@ -1,17 +1,31 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 """
-Generador de pólizas para Orange Poliza Engine.
+Generador de pÃ³lizas para Orange Poliza Engine.
 
 Toma:
-  - un movimiento normalizado (fecha, descripción, total, tipo, etc.)
-  - una PLANTILLA de movimientos contables (lista de líneas: cuenta,
-    cargo/abono, fórmula) que viene de la regla que hizo match
+  - un movimiento normalizado (fecha, descripciÃ³n, total, tipo, etc.)
+  - una PLANTILLA de movimientos contables (lista de lÃ­neas: cuenta,
+    cargo/abono, fÃ³rmula) que viene de la regla que hizo match
       (ver rule_engine.encontrar_regla)
 
 y genera:
-  - las líneas de la póliza (cargos y abonos ya calculados)
-  - una validación de que cuadra (suma cargos == suma abonos)
-  - una explicación paso a paso para el visor de auditoría
+  - las lÃ­neas de la pÃ³liza (cargos y abonos ya calculados)
+  - una validaciÃ³n de que cuadra (suma cargos == suma abonos)
+  - una explicaciÃ³n paso a paso para el visor de auditorÃ­a
 """
 
 from dataclasses import dataclass, field
@@ -25,17 +39,17 @@ except ImportError:  # se ejecuta como script suelto (ej. demo_end_to_end.py)
 
 @dataclass
 class LineaPlantilla:
-    """Una línea de la plantilla contable de una regla, tal como se
+    """Una lÃ­nea de la plantilla contable de una regla, tal como se
     guarda en la tabla `plantilla_movimientos`."""
     cuenta: str
     naturaleza: str  # 'cargo' | 'abono'
     formula: str      # ej. "TOTAL / 1.16", "IVA", "TOTAL"
-    descripcion_linea: Optional[str] = None  # si es None, se usa la descripción del movimiento
+    descripcion_linea: Optional[str] = None  # si es None, se usa la descripciÃ³n del movimiento
 
 
 @dataclass
 class LineaPoliza:
-    """Una línea ya calculada, lista para exportar."""
+    """Una lÃ­nea ya calculada, lista para exportar."""
     cuenta: str
     naturaleza: str
     importe: float
@@ -62,16 +76,16 @@ def generar_poliza(
     tasa_ret_isr: float = 0.0,
 ) -> ResultadoPoliza:
     """
-    Genera las líneas de póliza para un movimiento, aplicando la
+    Genera las lÃ­neas de pÃ³liza para un movimiento, aplicando la
     plantilla de la regla que hizo match.
 
     :param movimiento: dict con al menos 'total', 'descripcion', 'tipo',
         'tiene_iva', 'ret_iva', 'ret_isr', 'tipo_cambio'
     :param plantilla: lista de LineaPlantilla en el orden en que deben
-        aparecer en la póliza
-    :param nombre_regla: nombre de la regla que se está aplicando (para
-        la explicación)
-    :param motivo_match: el `motivo` que regresó rule_engine.encontrar_regla
+        aparecer en la pÃ³liza
+    :param nombre_regla: nombre de la regla que se estÃ¡ aplicando (para
+        la explicaciÃ³n)
+    :param motivo_match: el `motivo` que regresÃ³ rule_engine.encontrar_regla
     """
     resultado = ResultadoPoliza()
 
@@ -84,6 +98,7 @@ def generar_poliza(
         tipo_cambio=movimiento.get("tipo_cambio", 1.0),
         tasa_ret_iva=tasa_ret_iva,
         tasa_ret_isr=tasa_ret_isr,
+        iva_exacto=movimiento.get("iva_exacto"),
     )
 
     resultado.explicacion.append(
@@ -102,15 +117,15 @@ def generar_poliza(
             importe = evaluar_formula(linea_plantilla.formula, variables)
         except FormulaError as e:
             resultado.errores.append(
-                f"Error en la línea de cuenta {linea_plantilla.cuenta}: {e}"
+                f"Error en la lÃ­nea de cuenta {linea_plantilla.cuenta}: {e}"
             )
             continue
 
         if importe < 0:
             resultado.errores.append(
-                f"La fórmula '{linea_plantilla.formula}' para la cuenta "
+                f"La fÃ³rmula '{linea_plantilla.formula}' para la cuenta "
                 f"{linea_plantilla.cuenta} dio un importe negativo ({importe}). "
-                f"Revisa la fórmula."
+                f"Revisa la fÃ³rmula."
             )
             continue
 
@@ -118,8 +133,12 @@ def generar_poliza(
             linea_plantilla.descripcion_linea or movimiento.get("descripcion", "")
         )
 
+        cuenta_eval = linea_plantilla.cuenta
+        if cuenta_eval == "BANCO" and movimiento.get("cuenta_banco"):
+            cuenta_eval = movimiento["cuenta_banco"]
+            
         linea = LineaPoliza(
-            cuenta=linea_plantilla.cuenta,
+            cuenta=cuenta_eval,
             naturaleza=linea_plantilla.naturaleza,
             importe=importe,
             descripcion=descripcion_linea,
@@ -146,14 +165,15 @@ def generar_poliza(
 
     if resultado.cuadrada:
         resultado.explicacion.append(
-            f"✓ Póliza cuadrada. Cargos: ${suma_cargos:,.2f}  "
+            f"âœ“ PÃ³liza cuadrada. Cargos: ${suma_cargos:,.2f}  "
             f"Abonos: ${suma_abonos:,.2f}"
         )
     else:
         if not resultado.errores:
             resultado.explicacion.append(
-                f"✗ Póliza NO cuadrada. Cargos: ${suma_cargos:,.2f}  "
+                f"âœ— PÃ³liza NO cuadrada. Cargos: ${suma_cargos:,.2f}  "
                 f"Abonos: ${suma_abonos:,.2f}  Diferencia: ${diferencia:,.2f}"
             )
 
     return resultado
+

@@ -1,3 +1,17 @@
+﻿# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from auth import login_required, superadmin_requerido
@@ -73,7 +87,7 @@ def reactivar_org(org_id):
     con.execute("UPDATE organizaciones SET estado_suscripcion = 'activa', fecha_vencimiento = ? WHERE id = ?", (nueva_fecha, org_id))
     con.commit()
     con.close()
-    flash("Despacho reactivado por 30 días.", "exito")
+    flash("Despacho reactivado por 30 dÃ­as.", "exito")
     return redirect(url_for("saas.saas_dashboard"))
 
 @saas_bp.route("/saas/organizaciones/<int:org_id>/renombrar", methods=["POST"])
@@ -106,3 +120,4 @@ def eliminar_org(org_id):
         flash("Despacho eliminado completamente.", "exito")
     con.close()
     return redirect(url_for("saas.saas_dashboard"))
+

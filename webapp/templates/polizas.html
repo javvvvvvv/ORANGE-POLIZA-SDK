@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block titulo %}Pólizas{% endblock %}
 {% block contenido %}
 <h1 class="text-xl font-semibold text-marino-900 mb-6">Pólizas generadas</h1>
 
 <div class="space-y-3">
   {% for p in polizas %}
-  <div class="bg-white border border-slate-200 rounded-xl p-5">
+  <div class="bg-white border border-slate-200 rounded-xl p-5" id="poliza-card-{{ p.id }}">
     <div class="flex items-start justify-between cursor-pointer" onclick="document.getElementById('detalle-{{ p.id }}').classList.toggle('hidden')">
       <div>
         <div class="font-medium text-marino-900">
@@ -14,8 +14,8 @@
         </div>
         <div class="text-sm text-slate-500 mt-1">{{ p.descripcion_movimiento }}</div>
       </div>
-      <div class="text-xs {{ 'text-emerald-600' if p.cuadrada else 'text-red-600' }} font-medium">
-        {{ 'Cuadrada' if p.cuadrada else 'NO cuadrada' }}
+      <div class="text-xs {{ 'text-emerald-600' if p.cuadrada else 'text-red-600 font-bold' }} font-medium">
+        {{ 'Cuadrada' if p.cuadrada else 'NO CUADRADA' }}
       </div>
     </div>
 
@@ -25,22 +25,207 @@
         <tr>
           <td class="py-1 pr-3 uppercase {{ 'text-emerald-600' if l.naturaleza == 'cargo' else 'text-rose-600' }}">{{ l.naturaleza }}</td>
           <td class="py-1 pr-3 font-mono">{{ l.cuenta }}</td>
-          <td class="py-1 pr-3 text-right">${{ "%.2f"|format(l.importe) }}</td>
+          <td class="py-1 pr-3 text-right">$ {{ "%.2f"|format(l.importe) }}</td>
           <td class="py-1 text-slate-500">{{ l.descripcion }}</td>
         </tr>
         {% endfor %}
       </table>
 
-      <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-500 space-y-1">
+      <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-500 space-y-1 mb-3">
         <div class="font-medium text-slate-600 mb-1">¿Por qué se generó así?</div>
         {% for linea in detalle[p.id].explicacion %}
         <div>{{ linea }}</div>
         {% endfor %}
       </div>
+      
+      <script>
+        window.polizaData = window.polizaData || {};
+        window.polizaData[{{ p.id }}] = [
+          {% for l in detalle[p.id].lineas %}
+          { cuenta: "{{ l.cuenta }}", naturaleza: "{{ l.naturaleza }}", importe: {{ l.importe }}, descripcion: "{{ l.descripcion|replace('"', '\\"') }}" }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ];
+      </script>
+      <button type="button" onclick="abrirEditor({{ p.id }}, '{{ p.tipo|capitalize }} #{{ p.numero }}')" class="px-3 py-1.5 bg-marino-800 text-white rounded hover:bg-marino-700 text-xs font-bold shadow-sm">
+         ✏️ Editar Póliza
+      </button>
     </div>
   </div>
   {% else %}
   <div class="text-slate-400 text-sm text-center py-12">Todavía no hay pólizas generadas.</div>
   {% endfor %}
 </div>
+
+<!-- Modal Editor -->
+<div id="modal-editor" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" style="display: none;">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <h2 class="text-lg font-bold text-gray-800" id="editor-title">Editar Póliza</h2>
+            <button type="button" onclick="cerrarEditor()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+        </div>
+        <div class="p-6 overflow-y-auto flex-1">
+            <input type="hidden" id="editor-poliza-id">
+            <table class="w-full text-sm text-left border-collapse" id="editor-table">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-600">
+                        <th class="p-2 border border-gray-200 w-24">Naturaleza</th>
+                        <th class="p-2 border border-gray-200 w-40">Cuenta Contable</th>
+                        <th class="p-2 border border-gray-200 w-32">Importe ($)</th>
+                        <th class="p-2 border border-gray-200">Concepto / Referencia</th>
+                        <th class="p-2 border border-gray-200 w-12 text-center">X</th>
+                    </tr>
+                </thead>
+                <tbody id="editor-tbody">
+                </tbody>
+                <tfoot>
+                    <tr class="font-bold text-gray-700 bg-gray-50">
+                        <td colspan="2" class="p-2 text-right">TOTALES:</td>
+                        <td class="p-2" id="editor-totales"></td>
+                        <td colspan="2" class="p-2 text-xs" id="editor-diferencia"></td>
+                    </tr>
+                </tfoot>
+            </table>
+            <button type="button" onclick="agregarLinea()" class="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-xs font-bold border border-gray-300">
+                + Agregar línea
+            </button>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+            <button type="button" onclick="cerrarEditor()" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded font-semibold">Cancelar</button>
+            <button type="button" onclick="guardarPoliza()" id="btn-guardar" class="px-4 py-2 bg-naranja-500 hover:bg-naranja-600 text-white rounded font-bold shadow-sm flex items-center">
+                Guardar Cambios
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let csrf_token = document.querySelector('input[name="csrf_token"]').value;
+
+    function formatNumber(num) {
+        return (Math.round(num * 100) / 100).toFixed(2);
+    }
+
+    function recalcularTotales() {
+        let cargos = 0;
+        let abonos = 0;
+        document.querySelectorAll('#editor-tbody tr').forEach(tr => {
+            let nat = tr.querySelector('.in-naturaleza').value;
+            let imp = parseFloat(tr.querySelector('.in-importe').value) || 0;
+            if (nat === 'cargo') cargos += imp;
+            else abonos += imp;
+        });
+        
+        let dif = Math.abs(cargos - abonos);
+        let difEl = document.getElementById('editor-diferencia');
+        let totEl = document.getElementById('editor-totales');
+        
+        totEl.innerHTML = <span class="text-emerald-600">C: $${formatNumber(cargos)}</span><br><span class="text-rose-600">A: $${formatNumber(abonos)}</span>;
+        
+        if (dif < 0.01) {
+            difEl.innerHTML = '<span class="text-emerald-600">✅ Póliza Cuadrada</span>';
+        } else {
+            difEl.innerHTML = <span class="text-red-600">❌ Descuadre: $${formatNumber(dif)}</span>;
+        }
+    }
+
+    function eliminarLinea(btn) {
+        btn.closest('tr').remove();
+        recalcularTotales();
+    }
+
+    function agregarLinea(datos = null) {
+        let tbody = document.getElementById('editor-tbody');
+        let tr = document.createElement('tr');
+        
+        let nat = datos ? datos.naturaleza : 'cargo';
+        let cta = datos ? datos.cuenta : '';
+        let imp = datos ? datos.importe : 0;
+        let desc = datos ? datos.descripcion : '';
+
+        tr.innerHTML = 
+            <td class="p-1 border border-gray-200">
+                <select class="in-naturaleza w-full p-1 border border-gray-300 rounded text-xs" onchange="recalcularTotales()">
+                    <option value="cargo" >CARGO</option>
+                    <option value="abono" >ABONO</option>
+                </select>
+            </td>
+            <td class="p-1 border border-gray-200">
+                <input type="text" class="in-cuenta w-full p-1 border border-gray-300 rounded text-xs font-mono uppercase" value="" placeholder="Ej. 102-01-000">
+            </td>
+            <td class="p-1 border border-gray-200">
+                <input type="number" step="0.01" class="in-importe w-full p-1 border border-gray-300 rounded text-xs text-right" value="" onchange="recalcularTotales()" onkeyup="recalcularTotales()">
+            </td>
+            <td class="p-1 border border-gray-200">
+                <input type="text" class="in-descripcion w-full p-1 border border-gray-300 rounded text-xs" value="" placeholder="Concepto">
+            </td>
+            <td class="p-1 border border-gray-200 text-center">
+                <button type="button" onclick="eliminarLinea(this)" class="text-red-500 hover:text-red-700 font-bold p-1">X</button>
+            </td>
+        ;
+        tbody.appendChild(tr);
+        recalcularTotales();
+    }
+
+    function abrirEditor(id, titulo) {
+        document.getElementById('editor-title').innerText = "Editando: " + titulo;
+        document.getElementById('editor-poliza-id').value = id;
+        
+        let tbody = document.getElementById('editor-tbody');
+        tbody.innerHTML = '';
+        
+        let lineas = window.polizaData[id] || [];
+        lineas.forEach(l => agregarLinea(l));
+        
+        document.getElementById('modal-editor').style.display = 'flex';
+    }
+    
+    function cerrarEditor() {
+        document.getElementById('modal-editor').style.display = 'none';
+    }
+
+    function guardarPoliza() {
+        let pid = document.getElementById('editor-poliza-id').value;
+        let lineas = [];
+        
+        document.querySelectorAll('#editor-tbody tr').forEach(tr => {
+            lineas.push({
+                naturaleza: tr.querySelector('.in-naturaleza').value,
+                cuenta: tr.querySelector('.in-cuenta').value.trim(),
+                importe: parseFloat(tr.querySelector('.in-importe').value) || 0,
+                descripcion: tr.querySelector('.in-descripcion').value.trim()
+            });
+        });
+        
+        let btn = document.getElementById('btn-guardar');
+        btn.disabled = true;
+        btn.innerText = "Guardando...";
+        
+        let empresa_id = "{{ request.view_args.get('empresa_id') }}";
+        let url = /empresas//polizas/16768/editar;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf_token
+            },
+            body: JSON.stringify({ lineas: lineas })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.exito) {
+                window.location.reload();
+            } else {
+                alert("Error: " + data.mensaje);
+                btn.disabled = false;
+                btn.innerText = "Guardar Cambios";
+            }
+        })
+        .catch(err => {
+            alert("Error de conexión al guardar.");
+            btn.disabled = false;
+            btn.innerText = "Guardar Cambios";
+        });
+    }
+</script>
 {% endblock %}

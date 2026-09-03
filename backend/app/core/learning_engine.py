@@ -1,17 +1,31 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 """
-Módulo de aprendizaje para Orange Poliza Engine.
+MÃ³dulo de aprendizaje para Orange Poliza Engine.
 
 Cuando el motor de reglas (rule_engine.py) no encuentra ninguna regla
-para un movimiento, se le pregunta al usuario. Este módulo toma esa
-respuesta y decide CÓMO convertirla en una regla reutilizable, para que
-la próxima vez que aparezca "lo mismo" el sistema ya no pregunte.
+para un movimiento, se le pregunta al usuario. Este mÃ³dulo toma esa
+respuesta y decide CÃ“MO convertirla en una regla reutilizable, para que
+la prÃ³xima vez que aparezca "lo mismo" el sistema ya no pregunte.
 
 Importante: esto NO es una IA que decide sola. Es un sistema de
 aprendizaje supervisado: el usuario siempre confirma o ajusta la
-sugerencia antes de guardarla. La función principal,
+sugerencia antes de guardarla. La funciÃ³n principal,
 `sugerir_regla_desde_clasificacion_manual`, propone la regla; quien la
-guarda de verdad es la capa de API (más adelante), después de que el
+guarda de verdad es la capa de API (mÃ¡s adelante), despuÃ©s de que el
 usuario le da "Aceptar".
 """
 
@@ -26,12 +40,12 @@ _PATRON_CUENTA_TRAS_SLASH = re.compile(r"/\s*([A-Z0-9]{6,})", re.IGNORECASE)
 
 
 def _detectar_cuenta_en_texto(descripcion: str) -> str:
-    """Busca un número de cuenta/referencia largo después de un '/' en
-    la descripción cruda (antes de normalizar) — común en SPEI y pagos
+    """Busca un nÃºmero de cuenta/referencia largo despuÃ©s de un '/' en
+    la descripciÃ³n cruda (antes de normalizar) â€” comÃºn en SPEI y pagos
     a terceros ('SPEI ENVIADO BANORTE/0028920544', 'PAGO CUENTA DE
-    TERCERO/ 0031797026'). Ese número identifica al destinatario real
+    TERCERO/ 0031797026'). Ese nÃºmero identifica al destinatario real
     mucho mejor que las palabras alrededor ('ENVIADO', 'CUENTA', 'SPEI'),
-    que son genéricas y aparecen en decenas de movimientos distintos que
+    que son genÃ©ricas y aparecen en decenas de movimientos distintos que
     en realidad van a lugares diferentes."""
     m = _PATRON_CUENTA_TRAS_SLASH.search(descripcion)
     if not m:
@@ -51,12 +65,14 @@ class SugerenciaRegla:
     tipo_movimiento: Optional[str]
     explicacion: str
     alternativas: list = field(default_factory=list)  # otras palabras clave candidatas
+    palabra_clave_fallback: str = ""
+    descripcion_exacta_fallback: str = ""
 
 
 _BANCOS_CONOCIDOS = {
-    "BANORTE", "SANTANDER", "BBVA", "BANAMEX", "HSBC", "SCOTIABANK",
-    "INBURSA", "AZTECA", "BAJIO", "AFIRME", "BANREGIO", "MULTIVA",
-    "INVEX", "MIFEL", "ACTINVER", "STP", "MERCADO PAGO", "BANCOPPEL",
+    "BBVA", "BANCOMER", "SANTANDER", "BANAMEX", "CITIBANAMEX", "BANORTE",
+    "HSBC", "SCOTIABANK", "INBURSA", "BAJIO", "AZTECA", "BANCO AZTECA",
+    "STP", "OXXO",
 }
 
 
@@ -66,13 +82,13 @@ def _limpiar_token(palabra: str) -> str:
 
 def _extraer_palabra_clave_candidata(descripcion_normalizada: str) -> str:
     """
-    De una descripción normalizada tipo "COMPRA OXXO SUC 332", intenta
-    encontrar la(s) palabra(s) más "identificadora(s)" del comercio/
-    concepto: normalmente lo que sobra después de quitar verbos y
-    términos genéricos de banco (COMPRA, PAGO, SPEI, ENVIADO, CUENTA,
+    De una descripciÃ³n normalizada tipo "COMPRA OXXO SUC 332", intenta
+    encontrar la(s) palabra(s) mÃ¡s "identificadora(s)" del comercio/
+    concepto: normalmente lo que sobra despuÃ©s de quitar verbos y
+    tÃ©rminos genÃ©ricos de banco (COMPRA, PAGO, SPEI, ENVIADO, CUENTA,
     TERCERO, GUIA...). Si sobran 2+ palabras "fuertes" seguidas, se usan
     las dos juntas (ej. "CLAVOS NACIONALES") en vez de solo la primera:
-    una sola palabra genérica-ish ("CLAVOS") es más fácil que coincida
+    una sola palabra genÃ©rica-ish ("CLAVOS") es mÃ¡s fÃ¡cil que coincida
     por accidente con otro movimiento no relacionado que la frase
     completa.
     """
@@ -93,23 +109,34 @@ def _extraer_palabra_clave_candidata(descripcion_normalizada: str) -> str:
     return " ".join(candidatas[:2]) if candidatas else ""
 
 
-def sugerir_regla_desde_clasificacion_manual(movimiento: dict) -> SugerenciaRegla:
+def sugerir_regla_desde_clasificacion_manual(movimiento: dict, rfc_empresa: str = None) -> SugerenciaRegla:
     """
     Analiza un movimiento que el usuario acaba de clasificar a mano y
     sugiere la mejor forma de convertirlo en regla, en orden de
-    preferencia: RFC > cuenta bancaria > palabra clave de la descripción.
+    preferencia: RFC > cuenta bancaria > palabra clave de la descripciÃ³n.
 
-    Esto se le muestra al usuario en una ventana de confirmación como:
+    Esto se le muestra al usuario en una ventana de confirmaciÃ³n como:
 
-        "Detectamos el RFC ABC010101XXX. ¿Quieres que la próxima vez
+        "Detectamos el RFC ABC010101XXX. Â¿Quieres que la prÃ³xima vez
          que llegue un movimiento de este RFC se clasifique
-         automáticamente igual? [Sí, crear regla] [No, preguntar cada vez]"
+         automÃ¡ticamente igual? [SÃ­, crear regla] [No, preguntar cada vez]"
     """
     descripcion = movimiento.get("descripcion", "")
     descripcion_norm = normalizar_texto(descripcion)
     tipo_mov = movimiento.get("tipo")
     rfc = (movimiento.get("rfc_contraparte") or "").strip()
+    if rfc.upper() in {"ND", "N/A", "NA", "N.D.", "N.A.", "XAXX010101000", "XEXX010101000", "000000000000", "XXX"}:
+        rfc = ""
     cuenta_bancaria = (movimiento.get("cuenta_bancaria_contraparte") or "").strip()
+
+    if rfc and rfc_empresa and rfc.upper() == rfc_empresa.upper():
+        rfc = ""
+
+    palabra_clave = _extraer_palabra_clave_candidata(descripcion_norm)
+        
+    es_exacta = False
+    if not palabra_clave or len(palabra_clave) < 3:
+        es_exacta = True
 
     if rfc:
         return SugerenciaRegla(
@@ -117,10 +144,12 @@ def sugerir_regla_desde_clasificacion_manual(movimiento: dict) -> SugerenciaRegl
             tipo_coincidencia="rfc",
             valor_coincidencia=rfc,
             tipo_movimiento=tipo_mov,
+            palabra_clave_fallback="" if es_exacta else palabra_clave,
+            descripcion_exacta_fallback=descripcion.strip() if es_exacta else "",
             explicacion=(
-                f"Este movimiento trae el RFC {rfc}. Es la forma más confiable "
+                f"Este movimiento trae el RFC {rfc}. Es la forma mÃ¡s confiable "
                 f"de identificar al mismo proveedor/cliente en el futuro, "
-                f"aunque cambie el texto de la descripción."
+                f"aunque cambie el texto de la descripciÃ³n."
             ),
         )
 
@@ -130,6 +159,8 @@ def sugerir_regla_desde_clasificacion_manual(movimiento: dict) -> SugerenciaRegl
             tipo_coincidencia="cuenta_bancaria",
             valor_coincidencia=cuenta_bancaria,
             tipo_movimiento=tipo_mov,
+            palabra_clave_fallback="" if es_exacta else palabra_clave,
+            descripcion_exacta_fallback=descripcion.strip() if es_exacta else "",
             explicacion=(
                 f"Este movimiento viene de la cuenta bancaria {cuenta_bancaria}. "
                 f"Se puede usar para identificar siempre al mismo origen/destino."
@@ -143,54 +174,53 @@ def sugerir_regla_desde_clasificacion_manual(movimiento: dict) -> SugerenciaRegl
         or palabra_clave.upper() in _BANCOS_CONOCIDOS
     )
 
-    cuenta_detectada = _detectar_cuenta_en_texto(descripcion) if palabra_es_debil else ""
+    cuenta_detectada = _detectar_cuenta_en_texto(descripcion) if (not palabra_clave or len(palabra_clave) < 4) else ""
     if cuenta_detectada:
         return SugerenciaRegla(
             nombre_sugerido=f"Movimientos a la cuenta {cuenta_detectada}",
             tipo_coincidencia="cuenta_bancaria",
             valor_coincidencia=cuenta_detectada,
             tipo_movimiento=tipo_mov,
+            palabra_clave_fallback="" if es_exacta else palabra_clave,
+            descripcion_exacta_fallback=descripcion.strip() if es_exacta else "",
             explicacion=(
                 f"No encontramos una palabra confiable para identificar "
-                f"este movimiento (lo único disponible era genérico o un "
-                f"nombre de banco). La descripción trae el número "
-                f"{cuenta_detectada}, que sí identifica al destinatario "
+                f"este movimiento. La descripciÃ³n trae el nÃºmero "
+                f"{cuenta_detectada}, que sÃ­ identifica al destinatario "
                 f"real; se usa ese en su lugar."
             ),
         )
 
-    advertencia = ""
-    if not palabra_clave:
-        # Último recurso: no hay ninguna palabra ni cuenta confiable.
-        # Se usa la primera palabra cruda de la descripción, pero se
-        # avisa claramente de que es una apuesta débil — mejor que el
-        # usuario elija "solo este movimiento" en vez de una regla
-        # reutilizable a ciegas.
-        crudas = descripcion_norm.split()
-        palabra_clave = crudas[0] if crudas else ""
-        advertencia = (
-            " ADVERTENCIA: no encontramos ninguna palabra ni número "
-            "realmente identificador aquí — esta sugerencia es débil. "
-            "Si este movimiento no se va a repetir tal cual, mejor elige "
-            "'solo este movimiento' en vez de crear una regla reutilizable."
+    if not palabra_clave or len(palabra_clave) < 3:
+        return SugerenciaRegla(
+            nombre_sugerido="Regla exacta para este movimiento",
+            tipo_coincidencia="exacta",
+            valor_coincidencia=descripcion.strip(),
+            tipo_movimiento=tipo_mov,
+            explicacion=(
+                "No encontramos ninguna palabra ni nÃºmero realmente identificador "
+                "aquÃ­, por lo que una regla difusa serÃ­a demasiado arriesgada. "
+                "Esta regla solo se aplicarÃ¡ si el movimiento tiene exactamente "
+                f"la misma descripciÃ³n: '{descripcion}'."
+            ),
         )
+
     alternativas = [
         p for p in descripcion_norm.split()
         if p != palabra_clave and len(p) >= 3
     ][:4]
 
     return SugerenciaRegla(
-        nombre_sugerido=f"Movimientos con '{palabra_clave}'" if palabra_clave else "Regla nueva",
+        nombre_sugerido=f"Movimientos con '{palabra_clave}'",
         tipo_coincidencia="palabra_clave",
         valor_coincidencia=palabra_clave,
         tipo_movimiento=tipo_mov,
         explicacion=(
-            f"No venía RFC ni cuenta bancaria en este movimiento. Detectamos "
-            f"'{palabra_clave}' como la palabra más identificadora de la "
-            f"descripción ('{descripcion_norm}'). Cualquier movimiento futuro "
-            f"cuya descripción contenga esa palabra se clasificará igual. "
+            f"No venÃ­a RFC ni cuenta bancaria en este movimiento. Detectamos "
+            f"'{palabra_clave}' como la palabra mÃ¡s identificadora de la "
+            f"descripciÃ³n ('{descripcion_norm}'). Cualquier movimiento futuro "
+            f"cuya descripciÃ³n contenga esa palabra se clasificarÃ¡ igual. "
             f"Puedes usar otra palabra si esta no es la correcta."
-            f"{advertencia}"
         ),
         alternativas=alternativas,
     )
@@ -208,8 +238,8 @@ def construir_regla_a_partir_de_sugerencia(
     con la palabra clave editada) en el dict listo para INSERT en la tabla
     `reglas` + `plantilla_movimientos` + `regla_palabras_clave`.
 
-    La capa de API es responsable de hacer los INSERTs reales; esta función
-    solo arma la estructura para no repetir esta lógica en cada endpoint.
+    La capa de API es responsable de hacer los INSERTs reales; esta funciÃ³n
+    solo arma la estructura para no repetir esta lÃ³gica en cada endpoint.
     """
     regla = {
         "empresa_id": empresa_id,
@@ -235,3 +265,4 @@ def construir_regla_a_partir_de_sugerencia(
         regla["descripcion_exacta"] = sugerencia.valor_coincidencia
 
     return regla
+

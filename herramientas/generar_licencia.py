@@ -1,13 +1,27 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 """
-Emisor de licencias de Orange Poliza Engine — herramienta de Javier/Orange
-Crew, NO se distribuye a clientes ni se sube al servidor de producción.
+Emisor de licencias de Orange Poliza Engine â€” herramienta de Javier/Orange
+Crew, NO se distribuye a clientes ni se sube al servidor de producciÃ³n.
 
 Modo interactivo (recomendado, lo usa emitir_licencia.bat):
     python3 generar_licencia.py
 
     Lista las empresas que ya existen en la base de datos y deja
-    marcar/desmarcar cuáles quedan autorizadas. Si no se puede conectar
+    marcar/desmarcar cuÃ¡les quedan autorizadas. Si no se puede conectar
     a la base (falta webapp/.env, servidor apagado, etc.) cae solo a
     modo manual: pide los nombres de empresa escritos a mano.
 
@@ -16,7 +30,7 @@ Modo directo (sin preguntas, para scripts):
         --empresa "Cliente Y" --expira 2027-12-31 --titular "Cliente X" \
         --salida ../licencia/orange.lic
 
-Una empresa "*" autoriza cualquier empresa (útil para tu propio ambiente
+Una empresa "*" autoriza cualquier empresa (Ãºtil para tu propio ambiente
 de desarrollo/demos internos, nunca para un cliente final).
 """
 
@@ -50,8 +64,8 @@ def emitir(empresas: list, expira: str, titular: str, salida: str) -> None:
 
 def _empresas_autorizadas_actuales(ruta: str) -> set:
     """Lee la licencia vigente (si existe) solo para mostrar el estado
-    actual en la lista; si está corrupta o no existe, no es un error
-    aquí, simplemente se muestra todo como no autorizado."""
+    actual en la lista; si estÃ¡ corrupta o no existe, no es un error
+    aquÃ­, simplemente se muestra todo como no autorizado."""
     try:
         datos = _cargar_archivo(ruta, verificar_firma=False)
         return {_normalizar(e) for e in datos.get("empresas", [])}
@@ -61,7 +75,7 @@ def _empresas_autorizadas_actuales(ruta: str) -> set:
 
 def _listar_empresas_bd() -> list:
     """Regresa [(id, nombre), ...] desde la base, o levanta una
-    excepción si no se pudo conectar (el llamador decide el fallback)."""
+    excepciÃ³n si no se pudo conectar (el llamador decide el fallback)."""
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "webapp"))
     from db import get_connection  # import perezoso: solo si hace falta
 
@@ -80,8 +94,8 @@ def _modo_interactivo_con_bd(empresas_bd: list) -> list:
         for i, (_id, nombre) in enumerate(empresas_bd, start=1):
             marca = "[X]" if nombre in marcadas else "[ ]"
             print(f"  {i:>2}) {marca} {nombre}")
-        print("\nEscribe los números a alternar, separados por espacio o coma")
-        print("(ej. 1 3 5), 'todos', 'ninguno', o deja vacío y Enter para continuar.")
+        print("\nEscribe los nÃºmeros a alternar, separados por espacio o coma")
+        print("(ej. 1 3 5), 'todos', 'ninguno', o deja vacÃ­o y Enter para continuar.")
         resp = input("> ").strip().lower()
 
         if resp == "":
@@ -109,11 +123,11 @@ def _modo_interactivo_con_bd(empresas_bd: list) -> list:
 
 def _modo_manual() -> list:
     print("\nNo se pudo leer la lista de empresas de la base de datos,")
-    print("así que captúralas a mano (nombre exactamente como está en")
-    print("Configuración de la empresa en el sistema).")
+    print("asÃ­ que captÃºralas a mano (nombre exactamente como estÃ¡ en")
+    print("ConfiguraciÃ³n de la empresa en el sistema).")
     empresas = []
     while True:
-        nombre = input("Nombre de empresa a autorizar (vacío + Enter para terminar): ").strip()
+        nombre = input("Nombre de empresa a autorizar (vacÃ­o + Enter para terminar): ").strip()
         if not nombre:
             break
         empresas.append(nombre)
@@ -124,17 +138,17 @@ def _modo_interactivo() -> None:
     try:
         empresas_bd = _listar_empresas_bd()
         if not empresas_bd:
-            raise RuntimeError("La base de datos no tiene empresas capturadas todavía.")
+            raise RuntimeError("La base de datos no tiene empresas capturadas todavÃ­a.")
         seleccion = _modo_interactivo_con_bd(empresas_bd)
     except Exception as e:
         print(f"\nAviso: {e}")
         seleccion = _modo_manual()
 
     if not seleccion:
-        print("\nNo quedó ninguna empresa autorizada. No se emitió ninguna licencia.")
+        print("\nNo quedÃ³ ninguna empresa autorizada. No se emitiÃ³ ninguna licencia.")
         return
 
-    expira = input("\nFecha de expiración (AAAA-MM-DD, ej. 2027-12-31): ").strip()
+    expira = input("\nFecha de expiraciÃ³n (AAAA-MM-DD, ej. 2027-12-31): ").strip()
     titular = input("Nombre del cliente/titular de la licencia: ").strip()
     emitir(seleccion, expira, titular, _RUTA_DEFECTO)
 
@@ -151,3 +165,4 @@ if __name__ == "__main__":
         parser.add_argument("--salida", default=_RUTA_DEFECTO)
         args = parser.parse_args()
         emitir(args.empresas, args.expira, args.titular, args.salida)
+

@@ -12,7 +12,7 @@ import shutil
 from flask import Blueprint, flash, g, redirect, render_template, request, session, url_for, send_file, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from auth import login_required, gerente_requerido, empresa_requerida, obtener_empresas_del_usuario
+from auth import login_required, gerente_requerido, empresa_requerida, obtener_empresas_del_usuario, csrf_protect
 from db import get_connection, hay_usuarios
 import usuarios_repo
 import bancos_repo
@@ -73,6 +73,30 @@ def selector_empresas():
     empresas = obtener_empresas_del_usuario(g.usuario["id"])
     return render_template("selector_empresas.html", empresas=empresas)
 
+
+@empresas_bp.route("/empresas/<int:empresa_id>/ajustes/probar_sql", methods=["POST"])
+@login_required
+@empresa_requerida
+@csrf_protect
+def probar_sql(empresa_id):
+    datos = request.get_json() or {}
+    servidor = datos.get("servidor", "")
+    usuario = datos.get("usuario", "")
+    password = datos.get("password", "")
+    
+    if not servidor or not usuario:
+        return {"exito": False, "mensaje": "Faltan datos de conexion"}
+    
+    try:
+        import pymssql
+        conn = pymssql.connect(server=servidor, user=usuario, password=password, database="master", login_timeout=5)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sys.databases WHERE name LIKE 'ct%' ORDER BY name")
+        dbs = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return {"exito": True, "dbs": dbs}
+    except Exception as e:
+        return {"exito": False, "mensaje": str(e)}
 
 @empresas_bp.route("/empresas/nueva", methods=["GET", "POST"])
 @login_required

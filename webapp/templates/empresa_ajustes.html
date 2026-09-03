@@ -42,6 +42,87 @@
             </div>
         </div>
         
+        <h2 class="text-lg font-medium text-slate-800 mt-8 mb-4 border-b border-slate-100 pb-2">Conexion Directa a CONTPAQi (SQL Server)</h2>
+        <p class="text-sm text-slate-500 mb-6">Configura la conexion directa a la base de datos de CONTPAQi para extraer catalogos nativamente.</p>
+        
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Servidor SQL / IP</label>
+                <input type="text" name="sql_servidor" value="{{ empresa.sql_servidor or '' }}" placeholder="localhost\\COMPAC" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-naranja-500 focus:border-naranja-500 sm:text-sm px-3 py-2 border">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Usuario SQL</label>
+                <input type="text" name="sql_usuario" value="{{ empresa.sql_usuario or '' }}" placeholder="sa" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-naranja-500 focus:border-naranja-500 sm:text-sm px-3 py-2 border">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Clave SQL</label>
+                <input type="password" name="sql_password" value="{{ empresa.sql_password or '' }}" class="w-full border-slate-300 rounded-lg shadow-sm focus:ring-naranja-500 focus:border-naranja-500 sm:text-sm px-3 py-2 border">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Base de Datos CONTPAQi</label>
+                <div class="flex gap-2">
+                    <input type="text" id="sql_base_datos" name="sql_base_datos" value="{{ empresa.sql_base_datos or '' }}" placeholder="ctMI_EMPRESA" class="flex-1 border-slate-300 rounded-lg shadow-sm focus:ring-naranja-500 focus:border-naranja-500 sm:text-sm px-3 py-2 border">
+                    <button type="button" onclick="probarConexionSQL()" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap">Probar y Listar DBs</button>
+                </div>
+                <p class="text-xs text-slate-400 mt-1" id="sql_status">Ej. ctADRIANA_MARCELA_PACHECO</p>
+                <select id="sql_db_selector" class="hidden mt-2 w-full border-slate-300 rounded-lg shadow-sm focus:ring-naranja-500 sm:text-sm px-3 py-2 border" onchange="document.getElementById('sql_base_datos').value = this.value">
+                    <option value="">-- Selecciona una Base de Datos --</option>
+                </select>
+            </div>
+        </div>
+
+        <script>
+        function probarConexionSQL() {
+            const btn = document.querySelector('button[onclick="probarConexionSQL()"]');
+            const status = document.getElementById('sql_status');
+            const selector = document.getElementById('sql_db_selector');
+            
+            const reqData = {
+                servidor: document.querySelector('input[name="sql_servidor"]').value,
+                usuario: document.querySelector('input[name="sql_usuario"]').value,
+                password: document.querySelector('input[name="sql_password"]').value
+            };
+            
+            btn.disabled = true;
+            btn.innerText = "Conectando...";
+            status.innerText = "Conectando al servidor SQL...";
+            status.className = "text-xs text-blue-500 mt-1";
+            selector.classList.add('hidden');
+            
+            fetch("/empresas/{{ empresa.id }}/ajustes/probar_sql", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": document.querySelector('input[name="csrf_token"]').value },
+                body: JSON.stringify(reqData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.exito) {
+                    status.innerText = "Conexion exitosa. Selecciona la BD:";
+                    status.className = "text-xs text-green-600 mt-1 font-medium";
+                    selector.innerHTML = '<option value="">-- Selecciona una Base de Datos --</option>';
+                    data.dbs.forEach(db => {
+                        const opt = document.createElement('option');
+                        opt.value = db;
+                        opt.innerText = db;
+                        selector.appendChild(opt);
+                    });
+                    selector.classList.remove('hidden');
+                } else {
+                    status.innerText = "Error: " + data.mensaje;
+                    status.className = "text-xs text-red-500 mt-1 font-medium";
+                }
+            })
+            .catch(err => {
+                status.innerText = "Error de red.";
+                status.className = "text-xs text-red-500 mt-1 font-medium";
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerText = "Probar y Listar DBs";
+            });
+        }
+        </script>
+
         <div class="mt-8 pt-6 border-t border-slate-100 flex justify-end">
             <button type="submit" class="bg-naranja-600 hover:bg-naranja-700 text-white font-medium rounded-lg px-6 py-2 shadow-sm">Guardar Cambios</button>
         </div>

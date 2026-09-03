@@ -1,4 +1,18 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 """Genera un estado de cuenta de ejemplo (formato columnas separadas) para
 probar el pipeline completo de punta a punta."""
 
@@ -16,7 +30,7 @@ def generar_estado_cuenta_ejemplo(ruta_salida: str):
     base = datetime(2026, 8, 1)
     # (dias, concepto, referencia_banco, rfc, numero_factura, ingreso, egreso)
     # numero_factura = "" cuando el movimiento no trae factura (OXXO, comisiones,
-    # Netflix, Uber): así se ve reflejado también en la póliza exportada.
+    # Netflix, Uber): asÃ­ se ve reflejado tambiÃ©n en la pÃ³liza exportada.
     filas = [
         (0, "COMPRA OXXO 4821 SUC 332", "REF001", None, "", None, 348.00),
         (0, "COMPRA OXXO 7733 SUC 118", "REF002", None, "", None, 162.00),
@@ -43,3 +57,4 @@ def generar_estado_cuenta_ejemplo(ruta_salida: str):
 if __name__ == "__main__":
     generar_estado_cuenta_ejemplo("/home/claude/orange-poliza-engine/backend/tests/estado_cuenta_ejemplo.xlsx")
     print("Generado.")
+

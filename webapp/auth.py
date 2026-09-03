@@ -1,3 +1,17 @@
+﻿# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 from functools import wraps
 
 
@@ -13,17 +27,12 @@ from db import get_connection
 
 
 def login_required(vista):
-
     @wraps(vista)
-
     def envoltura(*args, **kwargs):
-
-        if "usuario_id" not in session:
-
+        if "usuario_id" not in session or not getattr(g, "usuario", None):
+            session.clear()
             return redirect(url_for("auth.login"))
-
         return vista(*args, **kwargs)
-
     return envoltura
 
 
@@ -34,11 +43,11 @@ def empresa_requerida(vista):
 
     """Verifica que el usuario tenga acceso a la empresa del URL y, de
 
-    paso, bloquea cualquier mÃ©todo que modifique datos (POST/PUT/DELETE)
+    paso, bloquea cualquier mÃƒÂ©todo que modifique datos (POST/PUT/DELETE)
 
-    si su rol en esa empresa es 'lector' â€” sin esto, "solo lectura"
+    si su rol en esa empresa es 'lector' Ã¢â‚¬â€ sin esto, "solo lectura"
 
-    no significaba nada: cualquier rol podÃ­a borrar el catÃ¡logo,
+    no significaba nada: cualquier rol podÃƒÂ­a borrar el catÃƒÂ¡logo,
 
     cambiar la config de IVA, eliminar bancos, etc."""
 
@@ -112,7 +121,7 @@ def csrf_protect(f):
         if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
             token = session.get('_csrf_token', None)
             if not token or token != request.form.get('csrf_token'):
-                abort(403, description='Token CSRF inválido o expirado. Vuelve atrás, recarga la página e inténtalo de nuevo.')
+                abort(403, description='Token CSRF invÃ¡lido o expirado. Vuelve atrÃ¡s, recarga la pÃ¡gina e intÃ©ntalo de nuevo.')
         return f(*args, **kwargs)
     return decorated_function
 
@@ -125,7 +134,7 @@ def gerente_requerido(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if g.usuario.get("rol_global") not in ("superadmin", "gerente", "admin"):
-            flash("No tienes permisos de gerente para realizar esta acción.", "error")
+            flash("No tienes permisos de gerente para realizar esta acciÃ³n.", "error")
             return redirect(url_for("empresas.selector_empresas"))
         return f(*args, **kwargs)
     return decorated_function
@@ -151,7 +160,7 @@ def superadmin_requerido(vista):
         if not usr or usr["rol_global"] != "superadmin":
             from flask import flash
             flash("Acceso denegado: Se requiere permiso de Super Administrador SaaS.", "error")
-            return redirect(url_for("empresas.lista_empresas"))
+            return redirect(url_for("empresas.selector_empresas"))
         return vista(*args, **kwargs)
     return envoltura
 
@@ -166,6 +175,7 @@ def admin_despacho_requerido(vista):
         if not usr or usr["rol_global"] not in ("superadmin", "admin"):
             from flask import flash
             flash("Acceso denegado: Se requiere permiso de Administrador de Despacho.", "error")
-            return redirect(url_for("empresas.lista_empresas"))
+            return redirect(url_for("empresas.selector_empresas"))
         return vista(*args, **kwargs)
     return envoltura
+

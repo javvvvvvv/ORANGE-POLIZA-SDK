@@ -1,3 +1,17 @@
+﻿# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 import os
 import tempfile
 
@@ -17,7 +31,7 @@ def generar_marcado(documento_id):
     ).fetchone()
     if documento is None or not documento["ruta_archivo"]:
         con.close()
-        raise ValueError("No se encontró el archivo original de este documento.")
+        raise ValueError("No se encontrÃ³ el archivo original de este documento.")
 
     movimientos = con.execute(
         """SELECT m.fila_original, m.fecha, p.tipo, p.numero
@@ -33,11 +47,11 @@ def generar_marcado(documento_id):
     ws = wb[hoja]
 
     ultima_col = ws.max_column
-    ws.cell(row=1, column=ultima_col + 1, value="Número de Póliza").font = NEGRITA
+    ws.cell(row=1, column=ultima_col + 1, value="NÃºmero de PÃ³liza").font = NEGRITA
 
     marcados = 0
     for m in movimientos:
-        # fila_original es índice 0-based de pandas; +2 por encabezado y base 1 de Excel
+        # fila_original es Ã­ndice 0-based de pandas; +2 por encabezado y base 1 de Excel
         fila_excel = m["fila_original"] + 2
         if fila_excel > ws.max_row:
             continue
@@ -55,3 +69,4 @@ def generar_marcado(documento_id):
     )
     wb.save(ruta_salida)
     return ruta_salida, marcados
+

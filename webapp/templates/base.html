@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -27,7 +27,7 @@
     <div class="text-lg font-semibold text-white truncate" title="{{ usuario_actual.organizacion_nombre if usuario_actual.rol_global != 'superadmin' else 'Orange Crew SaaS' }}">
       {{ usuario_actual.organizacion_nombre if usuario_actual.rol_global != 'superadmin' else 'Orange Crew SaaS' }}
     </div>
-    <div class="text-xs text-slate-400">{% if usuario_actual.rol_global == 'superadmin' %}Administración Global{% else %}Motor Contable{% endif %}</div>
+    <div class="text-xs text-slate-400">{% if usuario_actual.rol_global == 'superadmin' %}AdministraciÃ³n Global{% else %}Motor Contable{% endif %}</div>
   </div>
 
   {% if empresas_usuario %}
@@ -52,7 +52,7 @@
     {% else %}
       <a href="{{ url_for('empresas.mi_despacho') }}" class="block px-3 py-2 rounded hover:bg-marino-800 text-naranja-500 font-semibold">Mi Despacho</a>
     {% endif %}
-  </nav>
+</nav>
 
   {% if request.view_args and request.view_args.get('empresa_id') %}
 
@@ -60,9 +60,9 @@
   <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
     <a href="/empresas/{{ eid }}/" class="block px-3 py-2 rounded hover:bg-marino-800">1. Dashboard</a>
 
-    <div class="text-xs uppercase text-slate-500 px-3 pt-3 pb-1">Configuración inicial</div>
+    <div class="text-xs uppercase text-slate-500 px-3 pt-3 pb-1">ConfiguraciÃ³n inicial</div>
     <a href="/empresas/{{ eid }}/ajustes" class="block px-3 py-2 rounded hover:bg-marino-800">Ajustes e Impuestos</a>
-    <a href="/empresas/{{ eid }}/catalogo" class="block px-3 py-2 rounded hover:bg-marino-800">Catálogo de cuentas</a>
+    <a href="/empresas/{{ eid }}/catalogo" class="block px-3 py-2 rounded hover:bg-marino-800">CatÃ¡logo de cuentas</a>
     <a href="/empresas/{{ eid }}/configuracion" class="block px-3 py-2 rounded hover:bg-marino-800">IVA y bancos</a>
     <a href="/empresas/{{ eid }}/usuarios" class="block px-3 py-2 rounded hover:bg-marino-800">Usuarios</a>
 
@@ -73,20 +73,127 @@
     <a href="/empresas/{{ eid }}/reglas" class="block px-3 py-2 rounded hover:bg-marino-800">Reglas guardadas</a>
 
     <div class="text-xs uppercase text-slate-500 px-3 pt-3 pb-1">Resultado</div>
-    <form action="/empresas/{{ eid }}/polizas/generar" method="post">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="w-full text-left px-3 py-2 rounded hover:bg-marino-800">4. Generar pólizas</button>
-    </form>
-    <a href="/empresas/{{ eid }}/polizas" class="block px-3 py-2 rounded hover:bg-marino-800">5. Revisar pólizas</a>
+        <div>
+        <button type="button" onclick="document.getElementById('modal-generar').style.display='flex';" class="w-full text-left px-3 py-2 rounded hover:bg-marino-800">
+            4. Generar pólizas
+        </button>
+        <!-- Modal Generar -->
+        <div id="modal-generar" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" style="display: none;">
+            <div class="bg-marino-900 rounded shadow-lg w-96 overflow-hidden">
+                <div class="px-4 py-3 border-b border-marino-700 font-bold text-white">Opciones de Generación</div>
+                <div class="p-4">
+                    <form action="/empresas/{{ eid }}/polizas/generar" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="mb-4">
+                            <label class="block text-gray-300 text-sm font-bold mb-2">Número inicial Ingresos (opcional):</label>
+                            <input type="number" name="inicio_ingreso" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-orange-500" placeholder="Ej. 1">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-300 text-sm font-bold mb-2">Número inicial Egresos (opcional):</label>
+                            <input type="number" name="inicio_egreso" class="w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-orange-500" placeholder="Ej. 1">
+                        </div>
+                        <p class="text-xs text-gray-400 mb-4">Si dejas estos campos en blanco, el sistema continuará la numeración desde la última póliza generada.</p>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" onclick="document.getElementById('modal-generar').style.display='none';" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded">Cancelar</button>
+                            <button type="submit" class="px-4 py-2 bg-naranja-500 hover:bg-naranja-400 text-white rounded font-bold">Generar Pólizas</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <a href="/empresas/{{ eid }}/polizas" class="block px-3 py-2 rounded hover:bg-marino-800">5. Revisar pÃ³lizas</a>
     <a href="/empresas/{{ eid }}/documentos" class="block px-3 py-2 rounded hover:bg-marino-800">Documentos / estado marcado</a>
     <a href="/empresas/{{ eid }}/polizas/exportar" class="block px-3 py-2 rounded hover:bg-marino-800">6. Exportar .xls</a>
-  </nav>
+      <div>
+          <button type="button" onclick="abrirModalContpaqi()" class="block w-full text-left px-3 py-2 rounded hover:bg-marino-800 text-naranja-400 font-bold">
+            7. Sincronizar CONTPAQi (SDK)
+          </button>
+          
+          <!-- Modal -->
+          <div id="modal-contpaqi" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" style="display: none;">
+              <div class="bg-marino-900 rounded shadow-lg w-96 overflow-hidden">
+                  <div class="px-4 py-3 border-b border-marino-700 font-bold text-white">Seleccionar Empresa CONTPAQi</div>
+                  <div class="p-4">
+                      <form action="/empresas/{{ eid }}/polizas/exportar_sdk" method="POST" id="form-contpaqi">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                          <p class="text-gray-300 text-sm mb-3">
+                              Selecciona a quÃ© empresa de CONTPAQi deseas exportar las pÃ³lizas:
+                          </p>
+                          <div id="contpaqi-cargando" class="text-naranja-500 text-sm mb-4">Conectando con el puente SDK...</div>
+                          <select id="empresaContpaqi" name="nombre_empresa_contpaqi" onchange="verificarSelectContpaqi()" 
+                              class="w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-orange-500" 
+                              style="display: none;" required>
+                              <option value="">-- Selecciona una empresa --</option>
+                          </select>
+                          <div id="contpaqi-error" class="text-red-400 text-sm mt-2" style="display: none;">
+                              No se encontraron empresas o el puente no estÃ¡ corriendo.
+                          </div>
+                      </form>
+                  </div>
+                  <div class="px-4 py-3 bg-marino-800 text-right">
+                      <button onclick="cerrarModalContpaqi()" type="button" class="px-4 py-2 text-slate-300 hover:text-white mr-2">Cancelar</button>
+                      <button type="submit" form="form-contpaqi" id="btn-sync-contpaqi" class="px-4 py-2 bg-naranja-500 hover:bg-naranja-600 text-white font-bold rounded disabled:opacity-50" disabled>Sincronizar</button>
+                  </div>
+              </div>
+          </div>
+          
+          <script>
+            function abrirModalContpaqi() {
+                document.getElementById('modal-contpaqi').style.display = 'flex';
+                document.getElementById('contpaqi-cargando').style.display = 'block';
+                document.getElementById('empresaContpaqi').style.display = 'none';
+                document.getElementById('contpaqi-error').style.display = 'none';
+                document.getElementById('btn-sync-contpaqi').disabled = true;
+                
+                fetch('http://' + window.location.hostname + ':5005/empresas')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('contpaqi-cargando').style.display = 'none';
+                        if (data && data.length > 0) {
+                            const select = document.getElementById('empresaContpaqi');
+                            select.innerHTML = '<option value="">-- Selecciona una empresa --</option>';
+                            data.forEach(emp => {
+                                const opt = document.createElement('option');
+                                opt.value = emp;
+                                opt.innerText = emp;
+                                select.appendChild(opt);
+                            });
+                            select.style.display = 'block';
+                        } else {
+                            document.getElementById('contpaqi-error').style.display = 'block';
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error al obtener empresas:", err);
+                        document.getElementById('contpaqi-cargando').style.display = 'none';
+                        document.getElementById('contpaqi-error').style.display = 'block';
+                    });
+            }
+            
+            function cerrarModalContpaqi() {
+                document.getElementById('modal-contpaqi').style.display = 'none';
+            }
+
+            function verificarSelectContpaqi() {
+                const val = document.getElementById('empresaContpaqi').value;
+                document.getElementById('btn-sync-contpaqi').disabled = !val;
+            }
+          </script>
+      </div>
+            <div class="text-xs uppercase text-slate-500 px-3 pt-4 pb-1">Mantenimiento</div>
+        
+        <form action="/empresas/{{ eid }}/movimientos/limpiar" method="post" onsubmit="return confirm('¡CUIDADO! ¿Seguro que deseas ELIMINAR TODOS los movimientos y pólizas de esta empresa? Esto dejará la empresa en blanco para hacer una carga totalmente nueva.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="w-full text-left px-3 py-2 rounded hover:bg-red-900 text-red-400 font-bold">Limpiar Polizas y Movimientos</button>
+        </form>
+</nav>
   {% endif %}
 
   <div class="px-5 py-4 border-t border-marino-700 text-xs">
-    <a href="/empresas" class="block mb-2 text-naranja-500 hover:text-naranja-400 font-semibold">← Volver al Inicio</a>
+    <a href="/empresas" class="block mb-2 text-naranja-500 hover:text-naranja-400 font-semibold">â† Volver al Inicio</a>
       <div class="text-slate-300">{{ usuario_actual.nombre }}</div>
-    <a href="/logout" class="text-slate-500 hover:text-slate-300">Cerrar sesión</a>
+    <a href="/logout" class="text-slate-500 hover:text-slate-300">Cerrar sesiÃ³n</a>
   </div>
 </aside>
 {% endif %}
@@ -112,3 +219,9 @@
 
 </body>
 </html>
+
+
+
+
+
+

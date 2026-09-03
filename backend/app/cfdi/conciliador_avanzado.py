@@ -1,4 +1,18 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 """Conciliador avanzado: resuelve pagos parciales, N facturas -> 1
 movimiento, N movimientos -> 1 factura, y coincidencia por monto sin
 RFC. `cfdi_matcher.py` cubre solo el caso 1:1 simple."""
@@ -126,7 +140,7 @@ def conciliar_avanzado(
                     tipo_match="combinado_facturas", confianza=_CFG["cf"]["n_fact"],
                     motivo=(f"La suma de {len(cfdis_combo)} facturas ({folios}) coincide "
                             f"exactamente con este movimiento (${mov['total']:,.2f}). "
-                            f"Parece un pago que cubrió varias facturas juntas."),
+                            f"Parece un pago que cubriÃ³ varias facturas juntas."),
                     cfdis=cfdis_combo, movimientos=[mov],
                     aplicaciones=[AplicacionCFDI(c, mov, c.total) for c in cfdis_combo],
                 ))
@@ -148,7 +162,7 @@ def conciliar_avanzado(
 
                 if dispersion_dias <= _CFG["disp_dias"]:
                     explicacion = (
-                        "Común cuando varios cargos (ej. comisiones bancarias) se "
+                        "ComÃºn cuando varios cargos (ej. comisiones bancarias) se "
                         "facturan juntos una vez al mes."
                     )
                 else:
@@ -227,4 +241,65 @@ def conciliar_avanzado(
                 cfdis_ya_usados_ids.add(id(cfdi))
                 break
 
+    cfdis_ya_usados_ids = {id(c) for p in propuestas for c in p.cfdis}
+    cfdis_disponibles_global = [c for c in cfdis if id(c) not in cfdis_ya_usados_ids]
+
+    import re
+    for idx, mov in movs_sin_grupo:
+        desc_limpia = re.sub(r'[^a-zA-Z0-9]', '', (mov.get("descripcion") or "")).upper()
+        if not desc_limpia: continue
+        
+        for cfdi in cfdis_disponibles_global:
+            if id(cfdi) in cfdis_ya_usados_ids:
+                continue
+            
+            tipo = tipo_por_uuid.get(cfdi.uuid) or clasificar_cfdi(cfdi, rfc_empresa)
+            if tipo == "desconocido":
+                continue
+            tipo_mov_esperado = "ingreso" if tipo == "emitido" else "egreso"
+            if mov["tipo"] != tipo_mov_esperado:
+                continue
+                
+            # 1. Busqueda por Serie + Folio
+            match_texto = False
+            motivo_texto = ""
+            
+            folio_limpio = re.sub(r'[^a-zA-Z0-9]', '', cfdi.folio or "").upper()
+            serie_limpia = re.sub(r'[^a-zA-Z0-9]', '', cfdi.serie or "").upper()
+            
+            if folio_limpio and len(folio_limpio) >= 2:
+                # Si menciona la serie y el folio juntos (ej. F1234)
+                if serie_limpia and (serie_limpia + folio_limpio) in desc_limpia:
+                    match_texto = True
+                    motivo_texto = f"El estado de cuenta menciona el folio {cfdi.serie}{cfdi.folio}."
+                # O si solo menciona el folio (y es razonablemente largo para no ser falso positivo)
+                elif len(folio_limpio) >= 3 and folio_limpio in desc_limpia:
+                    match_texto = True
+                    motivo_texto = f"El estado de cuenta menciona el folio {cfdi.folio}."
+
+            # 2. Busqueda por Nombre del Cliente/Proveedor
+            if not match_texto:
+                nombre = cfdi.receptor_nombre if tipo_mov_esperado == "ingreso" else cfdi.emisor_nombre
+                if nombre:
+                    # Usamos la primera palabra significativa del nombre (minimo 4 letras)
+                    partes_nombre = [p for p in re.sub(r'[^a-zA-Z0-9]', ' ', nombre).upper().split() if len(p) >= 4 and p not in ('COMPANIA', 'GRUPO', 'COMERCIAL', 'SERVICIOS', 'SISTEMAS', 'DE', 'CV', 'SA', 'SAPI', 'RL')]
+                    if partes_nombre:
+                        for parte in partes_nombre:
+                            if parte in desc_limpia:
+                                match_texto = True
+                                motivo_texto = f"El estado de cuenta menciona al tercero ({parte})."
+                                break
+
+            # Si hubo coincidencia de texto, validar montos logicos
+            if match_texto and mov["total"] <= cfdi.total:
+                propuestas.append(PropuestaConciliacion(
+                    tipo_match="texto_inteligente", confianza=_CFG["cf"].get("sin_rfc", 75) - 5,
+                    motivo=f"Inteligencia Logica: {motivo_texto} El importe del banco cabe en el total del CFDI.",
+                    cfdis=[cfdi], movimientos=[mov],
+                    aplicaciones=[AplicacionCFDI(cfdi, mov, mov["total"])],
+                ))
+                cfdis_ya_usados_ids.add(id(cfdi))
+                break
+
     return propuestas
+

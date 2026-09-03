@@ -74,7 +74,7 @@ def importar(empresa_id):
 @empresa_requerida
 def importar_vista_previa(empresa_id):
     if request.method == "POST":
-        archivos = [a for a in request.files.getlist("archivos_edo_cuenta") if a and a.filename]
+        archivos = [a for a in request.files.getlist("archivos_excel") if a and a.filename]
         if not archivos:
             flash("Selecciona uno o varios archivos Excel o PDF.", "error")
             return redirect(url_for("importacion.importar", empresa_id=empresa_id))
@@ -179,7 +179,11 @@ def importar_confirmar(empresa_id):
         columna_importe=_vacio_a_none(request.form.get("columna_importe")),
         columna_tipo=_vacio_a_none(request.form.get("columna_tipo")),
         columnas_descripcion=[c for c in request.form.getlist("columnas_descripcion") if c],
+        columnas_descripcion_ingresos=[c for c in request.form.getlist("columnas_descripcion_ingresos") if c],
+        columnas_descripcion_egresos=[c for c in request.form.getlist("columnas_descripcion_egresos") if c],
         columna_rfc_contraparte=_vacio_a_none(request.form.get("columna_rfc")),
+        columna_rfc_ingresos=_vacio_a_none(request.form.get("columna_rfc_ingresos")),
+        columna_rfc_egresos=_vacio_a_none(request.form.get("columna_rfc_egresos")),
         columna_referencia=_vacio_a_none(request.form.get("columna_referencia")),
         columna_numero_factura=_vacio_a_none(request.form.get("columna_factura")),
         fila_encabezado=int(request.form.get("fila_encabezado", 0)),
@@ -210,8 +214,8 @@ def importar_confirmar(empresa_id):
             """INSERT INTO documentos_importados
                (empresa_id, banco_id, nombre_archivo, ruta_archivo, nombre_hoja,
                 tipo_archivo, importado_por, estado)
-               VALUES (?, ?, ?, ?, ?,  'pdf' if ruta_final.lower().endswith('.pdf') else 'excel' , ?, 'procesado')""",
-            (empresa_id, banco_id, os.path.basename(ruta_final), ruta_final, nombre_hoja, g.usuario["id"]),
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'procesado')""",
+            (empresa_id, banco_id, os.path.basename(ruta_final), ruta_final, nombre_hoja, 'pdf' if ruta_final.lower().endswith('.pdf') else 'excel', g.usuario["id"]),
         )
         documento_id = cur.lastrowid
         con.commit()
@@ -246,14 +250,32 @@ def importar_confirmar(empresa_id):
 def importar_cfdi_ruta(empresa_id):
     archivos = request.files.getlist("archivos_cfdi")
     if not archivos:
-        flash("Selecciona uno o varios archivos XML.", "error")
+        flash("Selecciona uno o varios archivos XML o un archivo ZIP.", "error")
         return redirect(url_for("importacion.importar", empresa_id=empresa_id))
 
     rutas = []
+    import zipfile
+    import uuid
     for archivo in archivos:
-        ruta_temporal = os.path.join(tempfile.gettempdir(), archivo.filename)
-        archivo.save(ruta_temporal)
-        rutas.append(ruta_temporal)
+        if archivo.filename.lower().endswith('.zip'):
+            ruta_zip = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()) + ".zip")
+            archivo.save(ruta_zip)
+            extraer_dir = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+            os.makedirs(extraer_dir, exist_ok=True)
+            with zipfile.ZipFile(ruta_zip, 'r') as zip_ref:
+                zip_ref.extractall(extraer_dir)
+            for root, dirs, files in os.walk(extraer_dir):
+                for file in files:
+                    if file.lower().endswith('.xml'):
+                        rutas.append(os.path.join(root, file))
+            try:
+                os.remove(ruta_zip)
+            except:
+                pass
+        else:
+            ruta_temporal = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()) + "_" + archivo.filename)
+            archivo.save(ruta_temporal)
+            rutas.append(ruta_temporal)
 
     con = get_connection()
     empresa = con.execute("SELECT rfc FROM empresas WHERE id = ?", (empresa_id,)).fetchone()

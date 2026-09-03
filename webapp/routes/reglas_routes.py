@@ -22,6 +22,9 @@ import marcado_repo
 import movimientos_repo
 import reglas_generales_repo
 from rules_repository import RepositorioReglas
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "backend", "app", "core")))
+import orange_intelligence
 
 
 from excel_importer import (
@@ -183,7 +186,7 @@ def pendientes_siguiente(empresa_id):
     # conoce el RFC y los impuestos exactos: no hace falta preguntar
     # IVA ni afectable, solo la cuenta contable del cliente/proveedor.
     cfdi_info = con.execute(
-        """SELECT c.serie, c.folio, c.rfc_emisor, c.rfc_receptor, c.total,
+        """SELECT c.serie, c.folio, c.rfc_emisor, c.nombre_emisor, c.rfc_receptor, c.nombre_receptor, c.total,
                   ci.base, ci.importe AS iva_importe, ci.tasa
            FROM cfdi_movimiento cm
            JOIN cfdis c ON c.id = cm.cfdi_id
@@ -269,8 +272,16 @@ def pendiente_asignar_rapido(empresa_id, movimiento_id):
     }
     if sugerencia.tipo_coincidencia == "rfc":
         kwargs["rfc_contraparte"] = sugerencia.valor_coincidencia
+        if getattr(sugerencia, "palabra_clave_fallback", ""):
+            kwargs["palabras_clave"] = [sugerencia.palabra_clave_fallback]
+        elif getattr(sugerencia, "descripcion_exacta_fallback", ""):
+            kwargs["descripcion_exacta"] = sugerencia.descripcion_exacta_fallback
     elif sugerencia.tipo_coincidencia == "cuenta_bancaria":
         kwargs["cuenta_bancaria_contraparte"] = sugerencia.valor_coincidencia
+        if getattr(sugerencia, "palabra_clave_fallback", ""):
+            kwargs["palabras_clave"] = [sugerencia.palabra_clave_fallback]
+        elif getattr(sugerencia, "descripcion_exacta_fallback", ""):
+            kwargs["descripcion_exacta"] = sugerencia.descripcion_exacta_fallback
     elif sugerencia.tipo_coincidencia == "exacta":
         kwargs["descripcion_exacta"] = sugerencia.valor_coincidencia
     else:

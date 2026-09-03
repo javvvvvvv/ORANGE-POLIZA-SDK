@@ -1,3 +1,17 @@
+﻿# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 import pandas as pd
 
 from db import get_connection
@@ -16,7 +30,7 @@ def importar_desde_excel(empresa_id, ruta_archivo, nombre_hoja=None):
     elif len(df.columns) >= 2:
         idx_cuenta, idx_desc = 0, 1
     else:
-        raise ValueError("El archivo debe tener al menos dos columnas: cuenta y descripción.")
+        raise ValueError("El archivo debe tener al menos dos columnas: cuenta y descripciÃ³n.")
 
     filas = []
     for _, fila in df.iterrows():
@@ -151,3 +165,40 @@ def eliminar_todo(empresa_id):
     con.execute("DELETE FROM cuentas_catalogo WHERE empresa_id = ?", (empresa_id,))
     con.commit()
     con.close()
+
+
+def sincronizar_desde_contpaqi(empresa_id, ruta_contpaqi):
+    import requests
+    from db import get_connection
+    url = "http://host.docker.internal:5005/cuentas/listar"
+    try:
+        resp = requests.post(url, json={"empresa": ruta_contpaqi}, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+        if not data.get("exito"):
+            raise Exception(data.get("mensaje", "Error desconocido del puente C#"))
+        
+        cuentas = data.get("cuentas", [])
+        if not cuentas:
+            return 0
+            
+        con = get_connection()
+        # Eliminar anteriores
+        con.execute("DELETE FROM cuentas_catalogo WHERE empresa_id = ?", (empresa_id,))
+        
+        # Insertar nuevas
+        insert_data = []
+        for c in cuentas:
+            insert_data.append((empresa_id, c["codigo"], c["nombre"], "", 1, c.get("agrupador_sat", "")))
+            
+        con.cursor().executemany(
+            """INSERT INTO cuentas_catalogo (empresa_id, cuenta, descripcion, cuenta_padre, nivel, codigo_agrupador)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            insert_data
+        )
+        con.commit()
+        con.close()
+        return len(cuentas)
+    except Exception as e:
+        raise Exception(f"No se pudo sincronizar con CONTPAQi: {str(e)}")
+

@@ -159,7 +159,9 @@ def _fila_p(mov: MovimientoPoliza, nombre_empresa: Optional[str]) -> str:
     r = _splice(r, *_pos("P", 1), "1" if mov.tipo == "ingreso" else "2", "left")
     r = _splice(r, *_pos("P", 2), str(mov.numero_poliza), "right")
     xml_tag = " (ADJUNTAR XML)" if mov.tiene_iva else ""
-    r = _splice(r, *_pos("P", 3), f"{mov.descripcion}{xml_tag}", "left")
+    # Se usa 40, 140 en lugar de _pos("P", 3) para preservar el espacio en la posicin 140
+    # y evitar que conceptos muy largos se peguen al "Sistema Origen" (posicin 141) provocando un error en Contpaqi.
+    r = _splice(r, 40, 140, f"{mov.descripcion}{xml_tag}", "left", permitir_truncar=True)
     r = _splice(r, *_pos("P", 4), _nuevo_guid(nombre_empresa), "left")
     return r
 
@@ -169,7 +171,8 @@ def _fila_m1(mov: MovimientoPoliza, linea, referencia: str, nombre_empresa: Opti
     r = _TPL_M1
     cuenta_texto = str(linea.cuenta).replace("-", "")
     r = _splice(r, *_pos("M1", 0), cuenta_texto, "left")
-    r = _splice(r, *_pos("M1", 1), referencia, "left")
+    # Se usa 34, 64 en lugar de _pos("M1", 1) para preservar el espacio en la posicin 64
+    r = _splice(r, 34, 64, referencia, "left", permitir_truncar=True)
     r = _splice(r, *_pos("M1", 2), "0" if linea.naturaleza == "cargo" else "1", "left")
     r = _splice(r, *_pos("M1", 3), _num(abs(linea.importe)), "left")
     r = _splice(r, *_pos("M1", 4), _nuevo_guid(nombre_empresa), "left")
@@ -384,9 +387,16 @@ def _construir_filas(movimientos: list[MovimientoPoliza], cat: ConfiguracionCata
             facturas = []
 
         es_multiple = len(facturas) > 1
-        # Cuando un pago junta varias facturas, Contpaqi espera "VARIOS"
-        # como referencia en vez de un solo número de factura.
-        referencia = "VARIOS" if es_multiple else (mov.numero_factura or "").strip()
+        if es_multiple:
+            folios = []
+            for fac in facturas:
+                if fac.folio and fac.folio.strip():
+                    folios.append(fac.folio.strip())
+                else:
+                    folios.append("U" + fac.uuid[-4:])
+            referencia = ", ".join(folios)[:50]
+        else:
+            referencia = (mov.numero_factura or "").strip()
         es_egreso = mov.tipo == "egreso"
         uuids = [f.uuid for f in facturas if f.uuid]
 
@@ -491,7 +501,7 @@ def exportar_polizas_contpaqi_txt(
     filas, con_cfdi, sin_cfdi = _construir_filas(movimientos_poliza, cat, ajuste, nombre_empresa)
 
     try:
-        with open(ruta_salida, "w", encoding="utf-8", newline="\r\n") as f:
+        with open(ruta_salida, "w", encoding="cp1252", errors="replace", newline="\r\n") as f:
             f.write("\n".join(filas) + "\n")
     except OSError as e:
         raise ErrorPolizaDescuadrada(f"No se pudo escribir el archivo '{ruta_salida}': {e}") from e

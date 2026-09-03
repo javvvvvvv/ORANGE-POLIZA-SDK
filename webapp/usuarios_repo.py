@@ -1,3 +1,17 @@
+﻿# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 from werkzeug.security import generate_password_hash
 
 from db import get_connection
@@ -17,8 +31,8 @@ def listar_usuarios_de_empresa(empresa_id):
 
 def buscar_usuario_por_usuario(usuario):
     """Login es global por nombre de usuario (no depende de la empresa
-    ni de la organización): dos organizaciones no pueden compartir el
-    mismo nombre de usuario, así que basta buscarlo directo."""
+    ni de la organizaciÃ³n): dos organizaciones no pueden compartir el
+    mismo nombre de usuario, asÃ­ que basta buscarlo directo."""
     con = get_connection()
     fila = con.execute(
         "SELECT * FROM usuarios WHERE usuario = ?",
@@ -84,3 +98,4 @@ def obtener_organizacion_de_empresa(empresa_id):
     fila = con.execute("SELECT organizacion_id FROM empresas WHERE id = ?", (empresa_id,)).fetchone()
     con.close()
     return fila["organizacion_id"] if fila else None
+

@@ -174,6 +174,7 @@ CREATE TABLE IF NOT EXISTS polizas (
     numero          INTEGER NOT NULL,
     fecha           TEXT NOT NULL,
     referencia      TEXT,
+    concepto        TEXT,
     cuadrada        INTEGER NOT NULL DEFAULT 0,
     aprobada_por    INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
     generada_en     TEXT NOT NULL DEFAULT (NOW()::text),
@@ -296,7 +297,7 @@ CREATE TABLE IF NOT EXISTS memoria_ml (
     empresa_id INTEGER NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
     descripcion_limpia TEXT NOT NULL,
     tipo TEXT NOT NULL,
-    regla_asignada_id INTEGER NOT NULL REFERENCES reglas_generales(id) ON DELETE CASCADE,
+    regla_asignada_id INTEGER NOT NULL REFERENCES reglas(id) ON DELETE CASCADE,
     frecuencia INTEGER NOT NULL DEFAULT 1,
     ultima_vez TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (empresa_id, descripcion_limpia, tipo, regla_asignada_id)

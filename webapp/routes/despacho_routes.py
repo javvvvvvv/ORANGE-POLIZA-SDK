@@ -1,4 +1,18 @@
 ﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 from flask import Blueprint, render_template, request, redirect, url_for, flash, g
 from db import get_connection
 from auth import login_required, gerente_requerido, log_audit
@@ -59,7 +73,7 @@ def nuevo_usuario():
     # SIMULACIÓN DE ENVÍO DE CORREO (AQUÍ IRÍA SENDGRID O SMTP)
     print(f"--- ENVIANDO CORREO A {correo} ---")
     print(f"Hola {nombre}, has sido invitado a Orange Póliza.")
-    print(f"Puedes entrar con tu cuenta de Google o Microsoft.")
+    print(f"Puedes entrar usando el botón de Iniciar Sesión con Google.")
     print(f"Link: {request.host_url}login")
     print("-----------------------------------")
     
@@ -117,3 +131,4 @@ def ver_bitacora():
     ''', (g.usuario["organizacion_id"],)).fetchall()
     con.close()
     return render_template("despacho_bitacora.html", logs=logs)
+

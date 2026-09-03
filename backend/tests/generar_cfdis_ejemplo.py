@@ -1,13 +1,27 @@
-# -*- coding: utf-8 -*-
-"""Genera CFDIs de ejemplo (XML válidos, CFDI 4.0 con timbre fiscal) para
+﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
+"""Genera CFDIs de ejemplo (XML vÃ¡lidos, CFDI 4.0 con timbre fiscal) para
 probar cfdi_matcher.py contra los movimientos del estado de cuenta de
-ejemplo. Los folios/fechas/importes están hechos a propósito para
+ejemplo. Los folios/fechas/importes estÃ¡n hechos a propÃ³sito para
 coincidir con los movimientos de Proveedor ABC y del cliente
 Comercializadora del Norte en generar_estado_cuenta_ejemplo.py."""
 
 import os
 
-RFC_EMPRESA = "EDP930101AB1"  # RFC de la empresa demo (receptora/emisora según el caso)
+RFC_EMPRESA = "EDP930101AB1"  # RFC de la empresa demo (receptora/emisora segÃºn el caso)
 
 PLANTILLA_CFDI = """<?xml version="1.0" encoding="UTF-8"?>
 <cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4"
@@ -88,3 +102,4 @@ def generar_cfdis_ejemplo(carpeta_salida: str):
 if __name__ == "__main__":
     ruta = generar_cfdis_ejemplo(os.path.join(os.path.dirname(__file__), "cfdi_ejemplo"))
     print(f"CFDIs generados en: {ruta}")
+

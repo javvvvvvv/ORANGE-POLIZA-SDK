@@ -1,3 +1,17 @@
+﻿# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 import os
 import sys
 from datetime import datetime
@@ -26,7 +40,7 @@ def mov(tipo, total, fecha, rfc=None):
 
 def main():
     print("=" * 70)
-    print("CASO 1: Cliente paga PARCIAL una factura, después liquida el resto")
+    print("CASO 1: Cliente paga PARCIAL una factura, despuÃ©s liquida el resto")
     print("=" * 70)
     cfdis = [cfdi("U1", RFC_EMPRESA, "CLI001XXX", 10000.00, datetime(2026, 8, 1), folio="100")]
     movs = [
@@ -62,7 +76,7 @@ def main():
         print(f"  [{p.tipo_match}] confianza={p.confianza}  {p.motivo}")
 
     print("\n" + "=" * 70)
-    print("CASO 4: Movimiento sin RFC pero con importe idéntico a una factura")
+    print("CASO 4: Movimiento sin RFC pero con importe idÃ©ntico a una factura")
     print("=" * 70)
     cfdis = [cfdi("U6", "PROV004XXX", RFC_EMPRESA, 999.99, datetime(2026, 8, 1), folio="777")]
     movs = [mov("egreso", 999.99, datetime(2026, 8, 3), rfc=None)]
@@ -72,3 +86,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

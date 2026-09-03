@@ -75,8 +75,17 @@ def catalogo(empresa_id):
                 ruta_temporal = os.path.join(tempfile.gettempdir(), archivo.filename)
                 archivo.save(ruta_temporal)
                 total = catalogo_repo.importar_desde_excel(empresa_id, ruta_temporal)
-            else:
+            elif modo == "texto":
                 total = catalogo_repo.importar_desde_texto(empresa_id, request.form.get("texto_catalogo", ""))
+            elif modo == "contpaqi":
+                con = get_connection()
+                ruta_contpaqi = con.execute("SELECT base_datos_contpaqi FROM empresas WHERE id = ?", (empresa_id,)).fetchone()[0]
+                con.close()
+                if not ruta_contpaqi:
+                    raise Exception("Falta configurar la ruta CONTPAQi de la empresa en Configuracion.")
+                total = catalogo_repo.sincronizar_desde_contpaqi(empresa_id, ruta_contpaqi)
+            else:
+                raise Exception("Modo no valido")
             flash(f"{total} cuentas importadas/actualizadas en el catálogo.", "exito")
         except Exception as e:
             flash(f"Error al importar catálogo: {e}", "error")
@@ -245,7 +254,7 @@ def conciliacion_rechazar(empresa_id, grupo_id):
 def usuarios(empresa_id):
     if g.rol_empresa != "admin":
         flash("Solo un administrador de esta empresa puede gestionar usuarios.", "error")
-        return redirect(url_for("dashboard", empresa_id=empresa_id))
+        return redirect(url_for("empresas.dashboard", empresa_id=empresa_id))
 
     if request.method == "POST":
         nombre_usuario = request.form["usuario"].strip().lower()
@@ -289,7 +298,7 @@ def usuarios(empresa_id):
 def usuario_quitar(empresa_id, usuario_id):
     if g.rol_empresa != "admin":
         flash("Solo un administrador puede quitar usuarios.", "error")
-        return redirect(url_for("dashboard", empresa_id=empresa_id))
+        return redirect(url_for("empresas.dashboard", empresa_id=empresa_id))
     if usuario_id == g.usuario["id"]:
         flash("No puedes quitarte a ti mismo de la empresa.", "error")
         return redirect(url_for("configuracion.usuarios", empresa_id=empresa_id))

@@ -1,3 +1,17 @@
+﻿# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 import os
 
 import sys
@@ -60,7 +74,7 @@ from asignacion_rapida import construir_plantilla_simple, validar_cuentas_iva_co
 
 
 
-# Vistas previas de importaciÃ³n pendientes de confirmar: token -> {archivos, banco_id}.
+# Vistas previas de importaciÃƒÂ³n pendientes de confirmar: token -> {archivos, banco_id}.
 
 # En memoria del proceso (suficiente para un servidor Flask de un solo
 
@@ -78,15 +92,15 @@ def _mover_archivo_con_reintentos(origen, destino, intentos=5, espera_segundos=0
 
     En Windows, un antivirus o el propio SO puede tener el archivo
 
-    reciÃ©n subido bloqueado por un instante (WinError 32). Reintenta
+    reciÃƒÂ©n subido bloqueado por un instante (WinError 32). Reintenta
 
-    con una pequeÃ±a espera y, si sigue sin poder mover, copia y borra
+    con una pequeÃƒÂ±a espera y, si sigue sin poder mover, copia y borra
 
-    el original por separado â€” asÃ­ el import nunca truena solo por
+    el original por separado Ã¢â‚¬â€ asÃƒÂ­ el import nunca truena solo por
 
-    esto, aunque el archivo temporal se quede huÃ©rfano en el peor caso
+    esto, aunque el archivo temporal se quede huÃƒÂ©rfano en el peor caso
 
-    (ya se limpia despuÃ©s con shutil.rmtree al final de la importaciÃ³n).
+    (ya se limpia despuÃƒÂ©s con shutil.rmtree al final de la importaciÃƒÂ³n).
 
     """
 
@@ -112,7 +126,7 @@ def _mover_archivo_con_reintentos(origen, destino, intentos=5, espera_segundos=0
 
 
 
-    # Ãšltimo recurso: copiar y borrar por separado. Si el borrado falla,
+    # ÃƒÅ¡ltimo recurso: copiar y borrar por separado. Si el borrado falla,
 
     # no importa: ya tenemos el destino, y la carpeta temporal se limpia
 
@@ -196,7 +210,7 @@ app.register_blueprint(billing_bp, url_prefix='/billing')
 
 def _manejar_error_conexion_bd(error):
 
-    """Si PostgreSQL se cae o se vuelve inalcanzable a media sesiÃ³n (no
+    """Si PostgreSQL se cae o se vuelve inalcanzable a media sesiÃƒÂ³n (no
 
     solo al arrancar), esto evita que la persona vea un traceback en
 
@@ -264,7 +278,7 @@ def csrf_protect_global():
         token = session.get('_csrf_token', None)
         if not token or token != request.form.get('csrf_token'):
             from werkzeug.exceptions import abort
-            abort(403, description='Token CSRF inválido o expirado. Vuelve atrás, recarga la página e inténtalo de nuevo.')
+            abort(403, description='Token CSRF invÃ¡lido o expirado. Vuelve atrÃ¡s, recarga la pÃ¡gina e intÃ©ntalo de nuevo.')
 
 @app.before_request
 def cargar_usuario():
@@ -307,15 +321,15 @@ import traceback
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('error.html', titulo='Página no encontrada', mensaje='La ruta solicitada no existe.', detalle=str(e)), 404
+    return render_template('error.html', titulo='PÃ¡gina no encontrada', mensaje='La ruta solicitada no existe.', detalle=str(e)), 404
 
 @app.errorhandler(500)
 @app.errorhandler(Exception)
 def internal_server_error(e):
-    logging.error('Excepción no controlada: %s', traceback.format_exc())
+    logging.error('ExcepciÃ³n no controlada: %s', traceback.format_exc())
     if isinstance(e, ErrorConexionBD):
         return _manejar_error_conexion_bd(e)
-    return render_template('error.html', titulo='Error interno del servidor', mensaje='Ocurrió un problema procesando la solicitud.', detalle=str(e)), 500
+    return render_template('error.html', titulo='Error interno del servidor', mensaje='OcurriÃ³ un problema procesando la solicitud.', detalle=str(e)), 500
 
 
 
@@ -335,3 +349,4 @@ if __name__ == '__main__':
         sys.exit(1)
     
     app.run(debug=True, host='0.0.0.0', port=5000)
+

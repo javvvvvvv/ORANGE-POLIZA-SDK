@@ -1,4 +1,18 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
+# ============================================================================
+# PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+# ============================================================================
+# Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+# Organización: ORANGE CREW
+# Contacto: ILLANJAVIER9@GMAIL.COM
+#
+# ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+# Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+# JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+# distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+# autorización expresa y por escrito del autor. Obra protegida conforme a la
+# Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+# ============================================================================
 """
 Repositorio de reglas para Orange Poliza Engine.
 
@@ -6,12 +20,12 @@ Esto es lo que hace que las reglas sean "configurables por datos" de
 verdad: en vez de vivir como una lista de `Regla(...)` escrita a mano en
 un script (como en los demos anteriores), viven en una base SQLite en
 disco y se pueden agregar, quitar, activar/desactivar y editar en
-cualquier momento, sin tocar código. Cuando pasemos a producción con
+cualquier momento, sin tocar cÃ³digo. Cuando pasemos a producciÃ³n con
 Claude Code, este mismo repositorio se vuelve una capa sobre PostgreSQL
-(las tablas ya están definidas en database/schema.sql); la interfaz de
-este módulo no debería cambiar.
+(las tablas ya estÃ¡n definidas en database/schema.sql); la interfaz de
+este mÃ³dulo no deberÃ­a cambiar.
 
-Uso típico:
+Uso tÃ­pico:
 
     repo = RepositorioReglas()
 
@@ -43,7 +57,7 @@ from rule_engine import Regla
 class RepositorioReglas:
     """Las tablas que usa este repositorio (reglas, regla_palabras_clave,
     plantilla_movimientos) ya se crean en database/schema.sql al
-    arrancar el servidor (ver db.inicializar_db()), así que este
+    arrancar el servidor (ver db.inicializar_db()), asÃ­ que este
     repositorio solo se conecta con db.get_connection(); ya no recibe
     ruta de archivo porque la base ahora es PostgreSQL, compartida por
     todas las instancias de la app."""
@@ -126,8 +140,8 @@ class RepositorioReglas:
     def agregar_linea_plantilla(self, regla_id: int, cuenta: str, naturaleza: str,
                                  formula: str, descripcion_linea: Optional[str] = None,
                                  orden: Optional[int] = None):
-        """Agrega un movimiento más a la póliza que genera esta regla
-        (ej. "además, agrega un cargo del 4% a tal cuenta")."""
+        """Agrega un movimiento mÃ¡s a la pÃ³liza que genera esta regla
+        (ej. "ademÃ¡s, agrega un cargo del 4% a tal cuenta")."""
         con = self._conectar()
         cur = con.cursor()
         if orden is None:
@@ -174,7 +188,7 @@ class RepositorioReglas:
 
     def registrar_uso(self, regla_id: int):
         """Se llama cada vez que una regla se aplica a un movimiento;
-        sirve para saber cuáles reglas son las más usadas."""
+        sirve para saber cuÃ¡les reglas son las mÃ¡s usadas."""
         con = self._conectar()
         con.execute(
             "UPDATE reglas SET veces_aplicada = veces_aplicada + 1 WHERE id = ?",
@@ -257,3 +271,4 @@ class RepositorioReglas:
             ]
 
         return reglas, plantillas
+
