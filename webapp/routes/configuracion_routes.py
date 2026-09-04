@@ -148,6 +148,7 @@ def configuracion(empresa_id):
         "configuracion.html", empresa=empresa, bancos=bancos, cuentas=cuentas,
         reglas_generales_ingreso=reglas_generales_ingreso,
         reglas_generales_egreso=reglas_generales_egreso,
+        empresas_bridge=empresas_bridge
     )
 
 
@@ -332,6 +333,7 @@ if __name__ == "__main__":
     # no solo desde esta misma máquina.
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=puerto, debug=False)
+
 
 
 

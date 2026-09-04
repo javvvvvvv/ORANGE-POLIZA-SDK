@@ -20,13 +20,21 @@
                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
       </div>
       <div>
-        <label class="block text-xs text-slate-500 mb-1">Base de datos CONTPAQi (nombre interno)</label>
-        <input name="base_datos_contpaqi" value="{{ empresa.base_datos_contpaqi or '' }}"
-               placeholder="ctNOMBRE_EMPRESA"
-               class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+        <label class="block text-xs text-slate-500 mb-1">Empresa CONTPAQi enlazada</label>
+        <select name="base_datos_contpaqi" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+          <option value="">-- No enlazada a CONTPAQi --</option>
+          {% if empresas_bridge %}
+            {% for eb in empresas_bridge %}
+              <option value="{{ eb.base_datos }}" {% if empresa.base_datos_contpaqi == eb.base_datos %}selected{% endif %}>
+                {{ eb.nombre }} ({{ eb.base_datos }})
+              </option>
+            {% endfor %}
+          {% elif empresa.base_datos_contpaqi %}
+            <option value="{{ empresa.base_datos_contpaqi }}" selected>{{ empresa.base_datos_contpaqi }} (Puente no disponible)</option>
+          {% endif %}
+        </select>
         <p class="text-xs text-slate-400 mt-1">
-          El nombre interno de base de datos que usa CONTPAQi, no el nombre visible de la empresa.
-          Se usa para sincronizar el catálogo y exportar pólizas vía SDK.
+          Las empresas se leen directamente del puente de CONTPAQi.
         </p>
       </div>
       <div>
