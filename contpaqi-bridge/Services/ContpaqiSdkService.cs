@@ -192,26 +192,29 @@ public sealed class ContpaqiSdkService
 
         var resultado = new List<CuentaDto>();
         int exito = cuenta.buscaPrimero();
-        while (exito == 1 || exito == 0) // Dependiendo de cómo regrese el éxito COM
+        if (exito == 1 || exito == 0)
         {
-            try 
+            do
             {
-                string codigo = cuenta.Codigo;
-                string nombre = cuenta.Nombre;
-                string? agrupador = null;
-                try { agrupador = cuenta.CodigoAgrupador; } catch (RuntimeBinderException) { /* opcional */ }
-                
-                // Si el código está vacío, salimos para evitar bucles infinitos por error COM
-                if (string.IsNullOrEmpty(codigo)) break;
-                
-                resultado.Add(new CuentaDto(codigo, nombre, agrupador));
-            }
-            catch (Exception ex)
-            {
-                _log.LogWarning($"Error leyendo cuenta: {ex.Message}");
-                break;
-            }
-            exito = cuenta.buscaSiguiente();
+                try 
+                {
+                    string codigo = cuenta.Codigo;
+                    string nombre = cuenta.Nombre;
+                    string? agrupador = null;
+                    try { agrupador = cuenta.CodigoAgrupador; } catch (RuntimeBinderException) { /* opcional */ }
+                    
+                    // Si el código está vacío, salimos para evitar bucles infinitos por error COM
+                    if (string.IsNullOrEmpty(codigo)) break;
+                    
+                    resultado.Add(new CuentaDto(codigo, nombre, agrupador));
+                }
+                catch (Exception ex)
+                {
+                    _log.LogWarning($"Error leyendo cuenta: {ex.Message}");
+                    break;
+                }
+                exito = cuenta.buscaSiguiente();
+            } while (exito == 1);
         }
         return resultado;
     });
