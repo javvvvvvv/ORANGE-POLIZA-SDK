@@ -9,6 +9,8 @@ services:
       - .env.docker
     command: >
       sh -c "python init_db.py && gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 app:app"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - db
     volumes:
@@ -34,3 +36,4 @@ volumes:
   postgres_data:
     name: "orange-poliza-engine-copia_postgres_data"
     external: true
+
