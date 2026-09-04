@@ -85,11 +85,15 @@ public sealed class ContpaqiSdkService
             var contrasena = _config["Contpaqi:Contrasena"];
             if (!string.IsNullOrEmpty(usuario))
             {
-                _sesion.firmaUsuarioParams(usuario, contrasena);
+                tipoSesion.InvokeMember("firmaUsuarioParams", 
+                    System.Reflection.BindingFlags.InvokeMethod, 
+                    null, _sesion, new object[] { usuario, contrasena });
             }
             else
             {
-                _sesion.firmaUsuario();
+                tipoSesion.InvokeMember("firmaUsuario", 
+                    System.Reflection.BindingFlags.InvokeMethod, 
+                    null, _sesion, null);
             }
             
             if (_sesion.ingresoUsuario == 0)
