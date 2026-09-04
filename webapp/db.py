@@ -262,6 +262,7 @@ def _aplicar_migraciones(con: Connection):
     migraciones = [
         ("empresas", "tasa_retencion_iva", "REAL NOT NULL DEFAULT 0.0"),
         ("empresas", "tasa_retencion_isr", "REAL NOT NULL DEFAULT 0.0"),
+        ("empresas", "base_datos_contpaqi", "TEXT"),
         ("documentos_importados", "ruta_archivo", "TEXT"),
 
         ("documentos_importados", "nombre_hoja", "TEXT"),
