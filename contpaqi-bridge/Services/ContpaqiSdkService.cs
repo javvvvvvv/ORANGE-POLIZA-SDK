@@ -186,22 +186,32 @@ public sealed class ContpaqiSdkService
     {
         AsegurarEmpresaAbierta(nombreInternoEmpresa);
 
-        // AJUSTAR: nombre real de la propiedad de sesión que expone el
-        // catálogo de cuentas. "cuentas" es la mejor hipótesis dado que
-        // el objeto que se reflejó (methods.txt) expone obtenerCuentas(),
-        // buscaPorCodigo(), crea(), modifica(), etc. — nombres típicos de
-        // un manejador de catálogo, no de una cuenta individual.
-        dynamic manejadorCuentas = _sesion!.cuentas;
-        dynamic coleccion = manejadorCuentas.obtenerCuentas();
+        var tipoCuenta = Type.GetTypeFromProgID("SDKCONTPAQNG.TSdkCuenta");
+        dynamic cuenta = Activator.CreateInstance(tipoCuenta)!;
+        cuenta.setSesion(_sesion);
 
         var resultado = new List<CuentaDto>();
-        foreach (dynamic cuenta in coleccion)
+        int exito = cuenta.buscaPrimero();
+        while (exito == 1 || exito == 0) // Dependiendo de cómo regrese el éxito COM
         {
-            string codigo = cuenta.getCodigo();
-            string nombre = cuenta.getNombre();
-            string? agrupador = null;
-            try { agrupador = cuenta.getCodigoAgp(); } catch (RuntimeBinderException) { /* opcional */ }
-            resultado.Add(new CuentaDto(codigo, nombre, agrupador));
+            try 
+            {
+                string codigo = cuenta.Codigo;
+                string nombre = cuenta.Nombre;
+                string? agrupador = null;
+                try { agrupador = cuenta.CodigoAgrupador; } catch (RuntimeBinderException) { /* opcional */ }
+                
+                // Si el código está vacío, salimos para evitar bucles infinitos por error COM
+                if (string.IsNullOrEmpty(codigo)) break;
+                
+                resultado.Add(new CuentaDto(codigo, nombre, agrupador));
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning($"Error leyendo cuenta: {ex.Message}");
+                break;
+            }
+            exito = cuenta.buscaSiguiente();
         }
         return resultado;
     });
