@@ -113,7 +113,7 @@ def catalogo_eliminar_todo(empresa_id):
 def configuracion(empresa_id):
     empresas_bridge = []
     try:
-                import sys, os
+        import sys, os
         sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../backend/app/exporters')))
         from contpaqi_bridge_client import listar_empresas
         res = listar_empresas()
@@ -332,5 +332,6 @@ if __name__ == "__main__":
     # no solo desde esta misma máquina.
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=puerto, debug=False)
+
 
 
