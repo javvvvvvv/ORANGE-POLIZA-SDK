@@ -85,11 +85,12 @@ public sealed class ContpaqiSdkService
             var contrasena = _config["Contpaqi:Contrasena"];
             if (!string.IsNullOrEmpty(usuario))
             {
-                try { _sesion.usuario = usuario; } catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException) { }
-                try { _sesion.contrasena = contrasena; } catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException) { }
+                                _sesion.firmaUsuarioParams(usuario, contrasena);
             }
-
-            _sesion.firmaUsuario();
+            else
+            {
+                _sesion.firmaUsuario();
+            }
             _log.LogInformation("Sesión CONTPAQi iniciada.");
         }
     }
@@ -141,13 +142,18 @@ public sealed class ContpaqiSdkService
     {
         AsegurarSesionIniciada(); // solo inicia conexion, no abre empresa
         
-                var tipoListaEmpresas = Type.GetTypeFromProgID("SDKCONTPAQNG.TSdkListaEmpresas")
+                
+        _log.LogInformation("Instanciando TSdkListaEmpresas");
+        var tipoListaEmpresas = Type.GetTypeFromProgID("SDKCONTPAQNG.TSdkListaEmpresas")
             ?? throw new InvalidOperationException("No se encontro SDKCONTPAQNG.TSdkListaEmpresas.");
         dynamic lista = Activator.CreateInstance(tipoListaEmpresas)!;
 
         var resultado = new List<EmpresaDto>();
+        
+        _log.LogInformation("Llamando buscaPrimero");
         int exito = lista.buscaPrimero();
-        if (exito == 0 || exito == 1) 
+        _log.LogInformation("buscaPrimero termino con exito: " + exito);
+                if (exito == 1) // 1 es Success en este SDK
         {
             do
             {
@@ -220,6 +226,9 @@ public sealed class ContpaqiSdkService
             "con herramientas/listar_metodos.ps1."));
     }
 }
+
+
+
 
 
 
