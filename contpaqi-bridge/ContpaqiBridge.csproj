@@ -12,7 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="appsettings.example.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="appsettings.example.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
+

@@ -109,7 +109,7 @@ public sealed class ContpaqiSdkService
         }
 
         var resultado = _sesion.abreEmpresa(nombreInternoEmpresa);
-        _log.LogInformation("abreEmpresa({Empresa}) -> {Resultado}", nombreInternoEmpresa, resultado);
+        _log.LogInformation("abreEmpresa({Empresa}) -> {Resultado}", nombreInternoEmpresa, (object)resultado);
         _empresaAbiertaActual = nombreInternoEmpresa;
     }
 
@@ -166,3 +166,4 @@ public sealed class ContpaqiSdkService
             "con herramientas/listar_metodos.ps1."));
     }
 }
+
