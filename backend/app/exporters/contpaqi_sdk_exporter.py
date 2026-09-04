@@ -1,4 +1,5 @@
-﻿# ============================================================================
+# -*- coding: utf-8 -*-
+# ============================================================================
 # PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
 # ============================================================================
 # Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
@@ -12,73 +13,60 @@
 # autorización expresa y por escrito del autor. Obra protegida conforme a la
 # Ley Federal del Derecho de Autor y tratados internacionales aplicables.
 # ============================================================================
-import json
-import urllib.request
-from datetime import datetime
+from contpaqi_bridge_client import ErrorBridgeContpaqi, exportar_polizas
 
-def exportar_polizas_via_sdk(movimientos_poliza, empresa_nombre="MiEmpresa"):
+
+def exportar_polizas_via_sdk(movimientos_poliza, nombre_interno_empresa: str) -> dict:
     """
-    Exporta las pÃ³lizas llamando a la API HTTP de ContpaqiBridge (C#).
+    Exporta las pólizas llamando al bridge de ContpaqiBridge (C#).
+
+    `nombre_interno_empresa` DEBE ser el nombre interno de base de datos de
+    CONTPAQi (columna `empresas.base_datos_contpaqi`, ej.
+    "ctADRIANA_MARCELA_PACHECO_MONARREZ"), nunca el nombre de exhibición
+    que ve el usuario -- confirmado en pruebas que abreEmpresa() con el
+    nombre bonito no abre nada.
     """
-    data = {
-        "empresa": empresa_nombre,
-        "polizas": []
-    }
-    
+    if not nombre_interno_empresa:
+        return {
+            "exito": False,
+            "mensaje": "Falta configurar el nombre interno de CONTPAQi para esta empresa "
+                       "(Configuración > Catálogo, base de datos CONTPAQi).",
+            "polizas_procesadas": 0,
+        }
+
+    data = {"empresa": nombre_interno_empresa, "polizas": []}
+
     for mov in movimientos_poliza:
         tipo_str = str(mov.tipo).lower()
-        tipo_int = 3 # diario por defecto
-        if "ingreso" in tipo_str: tipo_int = 1
-        elif "egreso" in tipo_str: tipo_int = 2
-        
+        tipo_int = 3  # diario por defecto
+        if "ingreso" in tipo_str:
+            tipo_int = 1
+        elif "egreso" in tipo_str:
+            tipo_int = 2
+
         p = {
             "numero": str(mov.numero_poliza),
             "tipo": tipo_int,
             "fecha": mov.fecha.strftime("%Y-%m-%d"),
             "concepto": mov.descripcion,
-            "diario": 0,
-            "movimientos": []
+            "movimientos": [],
         }
         for linea in mov.lineas:
-            m = {
+            p["movimientos"].append({
                 "cuenta": str(linea.cuenta).replace("-", ""),
                 "tipoMovto": 0 if linea.naturaleza.lower() == "cargo" else 1,
                 "importe": float(round(linea.importe, 2)),
                 "concepto": str(linea.descripcion) if linea.descripcion else "",
-                "referencia": str(getattr(mov, "numero_factura", "")) if getattr(mov, "numero_factura", "") else "",
-                "diario": 0
-            }
-            p["movimientos"].append(m)
+                "referencia": str(getattr(mov, "numero_factura", "")) or "",
+            })
         data["polizas"].append(p)
 
-    json_data = json.dumps(data, ensure_ascii=False).encode('utf-8')
-    
-    # URL del bridge en C# que corre en Windows host. host.docker.internal resuelve a la PC host desde dentro de Docker.
-    url = "http://host.docker.internal:5005/"
-    
-    req = urllib.request.Request(
-        url, 
-        data=json_data, 
-        headers={
-            'Content-Type': 'application/json',
-            'Host': 'localhost:5005'
-        }, 
-        method='POST'
-    )
     try:
-        with urllib.request.urlopen(req, timeout=30) as response:
-            res_body = response.read().decode('utf-8')
-            res_json = json.loads(res_body)
-            return {
-                "exito": res_json.get("exito", False),
-                "mensaje": res_json.get("mensaje", ""),
-                "polizas_procesadas": len(movimientos_poliza)
-            }
-    except Exception as e:
-        print(f"Error al conectar con ContpaqiBridge en {url}: {e}")
+        res = exportar_polizas(data)
         return {
-            "exito": False,
-            "mensaje": f"No se pudo conectar al puente (AsegÃºrate de tener corriendo iniciar_puente_contpaqi.bat): {e}",
-            "polizas_procesadas": 0
+            "exito": res.get("exito", False),
+            "mensaje": res.get("mensaje", ""),
+            "polizas_procesadas": len(movimientos_poliza) if res.get("exito") else 0,
         }
-
+    except ErrorBridgeContpaqi as e:
+        return {"exito": False, "mensaje": str(e), "polizas_procesadas": 0}

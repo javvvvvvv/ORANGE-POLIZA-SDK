@@ -1,0 +1,76 @@
+// ============================================================================
+// PROPIEDAD INTELECTUAL Y LICENCIA COMERCIAL CERRADA
+// ============================================================================
+// Autor Legal y Titular de Derechos: JAVIER ILLAN GONZALEZ
+// Organización: ORANGE CREW
+// Contacto: ILLANJAVIER9@GMAIL.COM
+//
+// ADVERTENCIA LEGAL (MÉXICO Y GLOBAL):
+// Este código fuente y su arquitectura son propiedad intelectual exclusiva de
+// JAVIER ILLAN GONZALEZ. Queda estrictamente prohibida su reproducción,
+// distribución, modificación, ingeniería inversa, copia o uso comercial sin la
+// autorización expresa y por escrito del autor. Obra protegida conforme a la
+// Ley Federal del Derecho de Autor y tratados internacionales aplicables.
+// ============================================================================
+using System.Collections.Concurrent;
+
+namespace ContpaqiBridge.Services;
+
+/// <summary>
+/// El SDK de CONTPAQi es un objeto COM de apartamento STA. Kestrel atiende
+/// cada request en un hilo del thread pool (MTA), y llamar un objeto STA
+/// desde ahí produce fallas intermitentes (RPC_E_WRONG_THREAD, deadlocks,
+/// "server busy") — este es el sospechoso número uno de por qué la
+/// conexión "no lo hacía bien" antes.
+///
+/// La solución: un único hilo STA dedicado que vive toda la vida del
+/// proceso, con una cola de trabajos. Todo lo que toca el SDK pasa por
+/// aquí, nunca se llama el COM object directo desde un endpoint.
+/// </summary>
+public sealed class StaComDispatcher : IDisposable
+{
+    private readonly BlockingCollection<Action> _cola = new();
+    private readonly Thread _hiloSta;
+
+    public StaComDispatcher()
+    {
+        _hiloSta = new Thread(Bucle)
+        {
+            IsBackground = true,
+            Name = "ContpaqiBridge-STA-COM",
+        };
+        _hiloSta.SetApartmentState(ApartmentState.STA);
+        _hiloSta.Start();
+    }
+
+    private void Bucle()
+    {
+        foreach (var trabajo in _cola.GetConsumingEnumerable())
+        {
+            trabajo();
+        }
+    }
+
+    /// <summary>Ejecuta una función en el hilo STA y regresa su resultado.</summary>
+    public Task<T> EjecutarAsync<T>(Func<T> funcion)
+    {
+        var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _cola.Add(() =>
+        {
+            try
+            {
+                tcs.SetResult(funcion());
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
+        });
+        return tcs.Task;
+    }
+
+    public void Dispose()
+    {
+        _cola.CompleteAdding();
+    }
+}

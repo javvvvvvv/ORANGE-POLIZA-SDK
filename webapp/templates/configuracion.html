@@ -19,7 +19,16 @@
         <input name="tasa_iva" type="number" step="0.01" value="{{ empresa.tasa_iva }}"
                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
       </div>
-      <div></div>
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">Base de datos CONTPAQi (nombre interno)</label>
+        <input name="base_datos_contpaqi" value="{{ empresa.base_datos_contpaqi or '' }}"
+               placeholder="ctNOMBRE_EMPRESA"
+               class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+        <p class="text-xs text-slate-400 mt-1">
+          El nombre interno de base de datos que usa CONTPAQi, no el nombre visible de la empresa.
+          Se usa para sincronizar el catálogo y exportar pólizas vía SDK.
+        </p>
+      </div>
       <div>
         <label class="block text-xs text-slate-500 mb-1">IVA acreditable</label>
         <input name="cuenta_iva_acreditable" list="cuentas-catalogo" value="{{ empresa.cuenta_iva_acreditable or '' }}"

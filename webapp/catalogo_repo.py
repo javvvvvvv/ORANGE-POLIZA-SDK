@@ -12,7 +12,11 @@
 # autorización expresa y por escrito del autor. Obra protegida conforme a la
 # Ley Federal del Derecho de Autor y tratados internacionales aplicables.
 # ============================================================================
+import os
+import sys
 import pandas as pd
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../backend/app/exporters')))
 
 from db import get_connection
 
@@ -167,14 +171,15 @@ def eliminar_todo(empresa_id):
     con.close()
 
 
-def sincronizar_desde_contpaqi(empresa_id, ruta_contpaqi):
-    import requests
+def sincronizar_desde_contpaqi(empresa_id, nombre_interno_empresa):
+    """`nombre_interno_empresa` es empresas.base_datos_contpaqi (nombre
+    interno de base de datos de CONTPAQi, ej. "ctNOMBRE_EMPRESA"), no la
+    ruta de un archivo -- el parámetro se llamaba `ruta_contpaqi` antes,
+    lo cual era engañoso: nunca fue una ruta de disco."""
+    from contpaqi_bridge_client import ErrorBridgeContpaqi, listar_cuentas
     from db import get_connection
-    url = "http://host.docker.internal:5005/cuentas/listar"
     try:
-        resp = requests.post(url, json={"empresa": ruta_contpaqi}, timeout=60)
-        resp.raise_for_status()
-        data = resp.json()
+        data = listar_cuentas({"empresa": nombre_interno_empresa})
         if not data.get("exito"):
             raise Exception(data.get("mensaje", "Error desconocido del puente C#"))
         

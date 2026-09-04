@@ -56,7 +56,12 @@ CREATE TABLE IF NOT EXISTS empresas (
     cuenta_complementaria_ingresos  TEXT,   -- para movimientos en dólares
     cuenta_complementaria_egresos   TEXT,
     cuenta_dif_cambiaria            TEXT,
-    retenciones_activas             INTEGER NOT NULL DEFAULT 0
+    retenciones_activas             INTEGER NOT NULL DEFAULT 0,
+
+    -- Nombre interno de base de datos en CONTPAQi (ej. "ctNOMBRE_EMPRESA"),
+    -- NO el nombre bonito que ve el usuario. Lo usan el bridge y la
+    -- sincronizacion de catalogo para abrir la empresa correcta.
+    base_datos_contpaqi             TEXT
 );
 
 -- Qué usuario puede acceder a qué empresa y con qué rol

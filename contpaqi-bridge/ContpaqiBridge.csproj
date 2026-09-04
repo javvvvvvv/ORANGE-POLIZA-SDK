@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- El SDK de CONTPAQi (SDKCONTPAQNG) es COM de 32 bits: el bridge debe
+         compilar y correr como x86, si no la instanciación del ComObject
+         truena con "Class not registered" aunque sí esté instalado. -->
+    <PlatformTarget>x86</PlatformTarget>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.example.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

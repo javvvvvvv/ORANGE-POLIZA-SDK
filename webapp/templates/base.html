@@ -106,80 +106,21 @@
     <a href="/empresas/{{ eid }}/documentos" class="block px-3 py-2 rounded hover:bg-marino-800">Documentos / estado marcado</a>
     <a href="/empresas/{{ eid }}/polizas/exportar" class="block px-3 py-2 rounded hover:bg-marino-800">6. Exportar .xls</a>
       <div>
-          <button type="button" onclick="abrirModalContpaqi()" class="block w-full text-left px-3 py-2 rounded hover:bg-marino-800 text-naranja-400 font-bold">
-            7. Sincronizar CONTPAQi (SDK)
-          </button>
-          
-          <!-- Modal -->
-          <div id="modal-contpaqi" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" style="display: none;">
-              <div class="bg-marino-900 rounded shadow-lg w-96 overflow-hidden">
-                  <div class="px-4 py-3 border-b border-marino-700 font-bold text-white">Seleccionar Empresa CONTPAQi</div>
-                  <div class="p-4">
-                      <form action="/empresas/{{ eid }}/polizas/exportar_sdk" method="POST" id="form-contpaqi">
-                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                          <p class="text-gray-300 text-sm mb-3">
-                              Selecciona a quÃ© empresa de CONTPAQi deseas exportar las pÃ³lizas:
-                          </p>
-                          <div id="contpaqi-cargando" class="text-naranja-500 text-sm mb-4">Conectando con el puente SDK...</div>
-                          <select id="empresaContpaqi" name="nombre_empresa_contpaqi" onchange="verificarSelectContpaqi()" 
-                              class="w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-orange-500" 
-                              style="display: none;" required>
-                              <option value="">-- Selecciona una empresa --</option>
-                          </select>
-                          <div id="contpaqi-error" class="text-red-400 text-sm mt-2" style="display: none;">
-                              No se encontraron empresas o el puente no estÃ¡ corriendo.
-                          </div>
-                      </form>
-                  </div>
-                  <div class="px-4 py-3 bg-marino-800 text-right">
-                      <button onclick="cerrarModalContpaqi()" type="button" class="px-4 py-2 text-slate-300 hover:text-white mr-2">Cancelar</button>
-                      <button type="submit" form="form-contpaqi" id="btn-sync-contpaqi" class="px-4 py-2 bg-naranja-500 hover:bg-naranja-600 text-white font-bold rounded disabled:opacity-50" disabled>Sincronizar</button>
-                  </div>
-              </div>
-          </div>
-          
-          <script>
-            function abrirModalContpaqi() {
-                document.getElementById('modal-contpaqi').style.display = 'flex';
-                document.getElementById('contpaqi-cargando').style.display = 'block';
-                document.getElementById('empresaContpaqi').style.display = 'none';
-                document.getElementById('contpaqi-error').style.display = 'none';
-                document.getElementById('btn-sync-contpaqi').disabled = true;
-                
-                fetch('http://' + window.location.hostname + ':5005/empresas')
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('contpaqi-cargando').style.display = 'none';
-                        if (data && data.length > 0) {
-                            const select = document.getElementById('empresaContpaqi');
-                            select.innerHTML = '<option value="">-- Selecciona una empresa --</option>';
-                            data.forEach(emp => {
-                                const opt = document.createElement('option');
-                                opt.value = emp;
-                                opt.innerText = emp;
-                                select.appendChild(opt);
-                            });
-                            select.style.display = 'block';
-                        } else {
-                            document.getElementById('contpaqi-error').style.display = 'block';
-                        }
-                    })
-                    .catch(err => {
-                        console.error("Error al obtener empresas:", err);
-                        document.getElementById('contpaqi-cargando').style.display = 'none';
-                        document.getElementById('contpaqi-error').style.display = 'block';
-                    });
-            }
-            
-            function cerrarModalContpaqi() {
-                document.getElementById('modal-contpaqi').style.display = 'none';
-            }
-
-            function verificarSelectContpaqi() {
-                const val = document.getElementById('empresaContpaqi').value;
-                document.getElementById('btn-sync-contpaqi').disabled = !val;
-            }
-          </script>
+          <!-- Antes esto abria un modal que le pedia al NAVEGADOR llamar
+               directo a http://<host>:5005/empresas para armar un <select>
+               con el nombre de la empresa CONTPAQi -- ahi era facil elegir
+               el nombre "bonito" en vez del nombre interno, y ademas
+               dependia de que el navegador del usuario pudiera alcanzar el
+               puerto 5005 directamente. Ya no hace falta: el nombre interno
+               se configura una sola vez en Configuracion > Catalogo y se
+               usa siempre de ahi. -->
+          <form action="/empresas/{{ eid }}/polizas/exportar_sdk" method="POST"
+                onsubmit="return confirm('¿Exportar las pólizas de esta empresa a CONTPAQi?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button type="submit" class="block w-full text-left px-3 py-2 rounded hover:bg-marino-800 text-naranja-400 font-bold">
+                7. Sincronizar CONTPAQi (SDK)
+              </button>
+          </form>
       </div>
             <div class="text-xs uppercase text-slate-500 px-3 pt-4 pb-1">Mantenimiento</div>
         

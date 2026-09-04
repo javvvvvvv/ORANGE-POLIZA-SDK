@@ -122,6 +122,7 @@ def configuracion(empresa_id):
             "cuenta_complementaria_egresos": request.form.get("cuenta_complementaria_egresos") or None,
             "cuenta_dif_cambiaria": request.form.get("cuenta_dif_cambiaria") or None,
             "retenciones_activas": request.form.get("retenciones_activas") == "on",
+            "base_datos_contpaqi": request.form.get("base_datos_contpaqi") or None,
         }
         bancos_repo.actualizar_configuracion_iva(empresa_id, datos)
         flash("Configuración guardada.", "exito")

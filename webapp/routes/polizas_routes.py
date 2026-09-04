@@ -120,15 +120,25 @@ def polizas_exportar(empresa_id):
 @csrf_protect
 def exportar_polizas_sdk(empresa_id):
     con = get_connection()
-    empresa = con.execute("SELECT nombre FROM empresas WHERE id = ?", (empresa_id,)).fetchone()
+    empresa = con.execute(
+        "SELECT nombre, base_datos_contpaqi FROM empresas WHERE id = ?", (empresa_id,)
+    ).fetchone()
     if not empresa:
         flash("Empresa no encontrada.", "error")
         con.close()
         return redirect(url_for("empresas.dashboard", empresa_id=empresa_id))
 
-    nombre_contpaqi = request.form.get("nombre_empresa_contpaqi")
+    # Antes se tomaba de un campo de texto libre (nombre_empresa_contpaqi),
+    # donde era facil capturar el nombre "bonito" en vez del nombre interno
+    # de base de datos -- eso es justo lo que abreEmpresa() rechaza. Ahora
+    # se usa siempre el valor ya confirmado y guardado en Configuracion.
+    nombre_contpaqi = empresa["base_datos_contpaqi"]
     if not nombre_contpaqi:
-        flash("Debes seleccionar una empresa de CONTPAQi.", "error")
+        flash(
+            "Falta configurar el nombre interno de CONTPAQi para esta empresa "
+            "(Configuración > Catálogo, base de datos CONTPAQi).",
+            "error",
+        )
         con.close()
         return redirect(url_for("empresas.dashboard", empresa_id=empresa_id))
 
@@ -176,7 +186,7 @@ def exportar_polizas_sdk(empresa_id):
     con.close()
 
     try:
-        res = exportar_polizas_via_sdk(movimientos_poliza, empresa_nombre=nombre_contpaqi)
+        res = exportar_polizas_via_sdk(movimientos_poliza, nombre_interno_empresa=nombre_contpaqi)
         
         if res.get("exito"):
             flash(f"Ã‰xito: {res.get('mensaje')}", "exito")
