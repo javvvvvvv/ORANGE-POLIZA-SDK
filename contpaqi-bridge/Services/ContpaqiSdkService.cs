@@ -159,14 +159,16 @@ public sealed class ContpaqiSdkService
         
         _log.LogInformation("Llamando buscaPrimero");
         int exito = lista.buscaPrimero();
+        System.IO.File.WriteAllText(@"C:\orange-poliza-engine-sdk\bridge_debug.txt", "Exito: " + exito);
         _log.LogInformation("buscaPrimero termino con exito: " + exito);
-                if (exito == 1) // 1 es Success en este SDK
+        if (exito == 1 || exito == 0)
         {
             do
             {
                 string nombre = lista.Nombre;
                 string baseDatos = lista.NombreBDD;
                 resultado.Add(new EmpresaDto(nombre, baseDatos));
+                System.IO.File.AppendAllText(@"C:\orange-poliza-engine-sdk\bridge_debug.txt", "\nEmpresa: " + nombre);
             } while (lista.buscaSiguiente() == exito);
         }
         return resultado;
