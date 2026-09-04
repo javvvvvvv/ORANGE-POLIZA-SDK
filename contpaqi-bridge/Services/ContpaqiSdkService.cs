@@ -71,6 +71,29 @@ public sealed class ContpaqiSdkService
     /// nunca el nombre bonito que ve el usuario — ese fue el bug confirmado
     /// en las pruebas: abreEmpresa con el nombre de exhibición no abre nada.
     /// </summary>
+    
+    private void AsegurarSesionIniciada()
+    {
+        if (_sesion is null)
+        {
+            var tipoSesion = Type.GetTypeFromProgID("SDKCONTPAQNG.TSdkSesion")
+                ?? throw new InvalidOperationException("No se encontró SDKCONTPAQNG.TSdkSesion.");
+            _sesion = Activator.CreateInstance(tipoSesion)!;
+            _sesion.iniciaConexion();
+
+            var usuario = _config["Contpaqi:Usuario"];
+            var contrasena = _config["Contpaqi:Contrasena"];
+            if (!string.IsNullOrEmpty(usuario))
+            {
+                try { _sesion.usuario = usuario; } catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException) { }
+                try { _sesion.contrasena = contrasena; } catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException) { }
+            }
+
+            _sesion.firmaUsuario();
+            _log.LogInformation("Sesión CONTPAQi iniciada.");
+        }
+    }
+
     private void AsegurarEmpresaAbierta(string nombreInternoEmpresa)
     {
         if (_sesion is null)
@@ -112,6 +135,37 @@ public sealed class ContpaqiSdkService
         _log.LogInformation("abreEmpresa({Empresa}) -> {Resultado}", nombreInternoEmpresa, (object)resultado);
         _empresaAbiertaActual = nombreInternoEmpresa;
     }
+
+    
+    public Task<List<EmpresaDto>> ListarEmpresasAsync() => _dispatcher.EjecutarAsync(() =>
+    {
+        AsegurarSesionIniciada(); // solo inicia conexion, no abre empresa
+        
+                var tipoListaEmpresas = Type.GetTypeFromProgID("SDKCONTPAQNG.TSdkListaEmpresas")
+            ?? throw new InvalidOperationException("No se encontro SDKCONTPAQNG.TSdkListaEmpresas.");
+        dynamic lista = Activator.CreateInstance(tipoListaEmpresas)!;
+
+        var resultado = new List<EmpresaDto>();
+        int exito = lista.buscaPrimero();
+        if (exito == 0 || exito == 1) 
+        {
+            do
+            {
+                string nombre = lista.Nombre;
+                string baseDatos = lista.NombreBDD;
+                resultado.Add(new EmpresaDto(nombre, baseDatos));
+            } while (lista.buscaSiguiente() == exito);
+        }
+        return resultado;
+    });
+
+    public Task<RespuestaBridge> CrearCuentaAsync(string nombreInternoEmpresa, CuentaDto cuenta) => _dispatcher.EjecutarAsync(() =>
+    {
+        AsegurarEmpresaAbierta(nombreInternoEmpresa);
+        dynamic manejador = _sesion!.cuentas;
+        manejador.crea(cuenta.Codigo, cuenta.Nombre, cuenta.AgrupadorSat ?? "");
+        return new RespuestaBridge(true, "Cuenta creada exitosamente");
+    });
 
     public Task<List<CuentaDto>> ListarCuentasAsync(string nombreInternoEmpresa) => _dispatcher.EjecutarAsync(() =>
     {
@@ -166,4 +220,7 @@ public sealed class ContpaqiSdkService
             "con herramientas/listar_metodos.ps1."));
     }
 }
+
+
+
 

@@ -55,6 +55,36 @@ app.MapGet("/salud", async (ContpaqiSdkService sdk) =>
         : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 });
 
+
+app.MapGet("/empresas/listar", async (ContpaqiSdkService sdk, ILogger<Program> log) =>
+{
+    try
+    {
+        var empresas = await sdk.ListarEmpresasAsync();
+        return Results.Ok(new { exito = true, empresas });
+    }
+    catch (Exception ex)
+    {
+        log.LogError(ex, "Fallo al listar empresas");
+        return Results.Ok(new RespuestaBridge(false, $"Error del SDK: {ex.Message}"));
+    }
+});
+
+app.MapPost("/cuentas/crear", async (CrearCuentaRequest req, ContpaqiSdkService sdk, ILogger<Program> log) =>
+{
+    if (string.IsNullOrWhiteSpace(req.Empresa)) return Results.BadRequest(new RespuestaBridge(false, "Falta la empresa."));
+    try
+    {
+        var result = await sdk.CrearCuentaAsync(req.Empresa, req.Cuenta);
+        return Results.Ok(result);
+    }
+    catch (Exception ex)
+    {
+        log.LogError(ex, "Fallo al crear cuenta en {Empresa}", req.Empresa);
+        return Results.Ok(new RespuestaBridge(false, $"Error del SDK al crear cuenta: {ex.Message}"));
+    }
+});
+
 app.MapPost("/cuentas/listar", async (CuentasRequest req, ContpaqiSdkService sdk, ILogger<Program> log) =>
 {
     if (string.IsNullOrWhiteSpace(req.Empresa))
@@ -93,3 +123,4 @@ app.MapPost("/", async (ExportarPolizasRequest req, ContpaqiSdkService sdk, ILog
 
 app.Logger.LogInformation("ContpaqiBridge escuchando en el puerto {Puerto}", puerto);
 app.Run();
+

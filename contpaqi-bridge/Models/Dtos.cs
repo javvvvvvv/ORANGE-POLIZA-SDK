@@ -23,3 +23,6 @@ public record CuentasRequest(string Empresa);
 public record RespuestaBridge(bool Exito, string Mensaje, object? Datos = null);
 
 public record CuentaDto(string Codigo, string Nombre, string? AgrupadorSat);
+
+public record EmpresaDto(string Nombre, string BaseDatos);
+public record CrearCuentaRequest(string Empresa, CuentaDto Cuenta);

@@ -111,6 +111,17 @@ def catalogo_eliminar_todo(empresa_id):
 @login_required
 @empresa_requerida
 def configuracion(empresa_id):
+    empresas_bridge = []
+    try:
+                import sys, os
+        sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../backend/app/exporters')))
+        from contpaqi_bridge_client import listar_empresas
+        res = listar_empresas()
+        if res.get('exito'):
+            empresas_bridge = res.get('empresas', [])
+    except Exception as e:
+        print(f"Error cargando empresas del bridge: {e}")
+
     if request.method == "POST":
         datos = {
             "tasa_iva": float(request.form.get("tasa_iva", 0.16)),
@@ -321,3 +332,5 @@ if __name__ == "__main__":
     # no solo desde esta misma máquina.
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=puerto, debug=False)
+
+

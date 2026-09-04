@@ -52,6 +52,23 @@ def bridge_disponible() -> bool:
         return False
 
 
+def _get_con_reintentos(ruta: str) -> dict[str, Any]:
+    ultimo_error: Exception | None = None
+    for intento in range(_REINTENTOS + 1):
+        try:
+            resp = requests.get(f"{_URL_BASE}{ruta}", timeout=_TIMEOUT_SEGUNDOS)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            ultimo_error = e
+            if intento < _REINTENTOS:
+                time.sleep(_ESPERA_ENTRE_REINTENTOS)
+
+    raise ErrorBridgeContpaqi(
+        f"No se pudo conectar al puente en {_URL_BASE} tras {_REINTENTOS + 1} intento(s) "
+        f"(ÿestá corriendo iniciar_puente_contpaqi.bat?): {ultimo_error}"
+    )
+
 def _post_con_reintentos(ruta: str, payload: dict[str, Any]) -> dict[str, Any]:
     ultimo_error: Exception | None = None
     for intento in range(_REINTENTOS + 1):
@@ -76,3 +93,10 @@ def exportar_polizas(payload: dict[str, Any]) -> dict[str, Any]:
 
 def listar_cuentas(payload: dict[str, Any]) -> dict[str, Any]:
     return _post_con_reintentos("/cuentas/listar", payload)
+
+def listar_empresas() -> dict[str, Any]:
+    return _get_con_reintentos('/empresas/listar')
+
+def crear_cuenta(payload: dict[str, Any]) -> dict[str, Any]:
+    return _post_con_reintentos('/cuentas/crear', payload)
+
