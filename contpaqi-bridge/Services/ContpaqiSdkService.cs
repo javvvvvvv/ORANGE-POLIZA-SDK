@@ -81,19 +81,15 @@ public sealed class ContpaqiSdkService
             _sesion = Activator.CreateInstance(tipoSesion)!;
             _sesion.iniciaConexion();
 
-            var usuario = _config["Contpaqi:Usuario"];
-            var contrasena = _config["Contpaqi:Contrasena"];
+            string usuario = _config["Contpaqi:Usuario"] ?? "";
+            string contrasena = _config["Contpaqi:Contrasena"] ?? "";
             if (!string.IsNullOrEmpty(usuario))
             {
-                tipoSesion.InvokeMember("firmaUsuarioParams", 
-                    System.Reflection.BindingFlags.InvokeMethod, 
-                    null, _sesion, new object[] { usuario, contrasena });
+                _sesion.firmaUsuarioParams((string)usuario, (string)contrasena);
             }
             else
             {
-                tipoSesion.InvokeMember("firmaUsuario", 
-                    System.Reflection.BindingFlags.InvokeMethod, 
-                    null, _sesion, null);
+                _sesion.firmaUsuario();
             }
             
             if (_sesion.ingresoUsuario == 0)
