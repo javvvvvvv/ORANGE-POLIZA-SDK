@@ -85,12 +85,19 @@ public sealed class ContpaqiSdkService
             var contrasena = _config["Contpaqi:Contrasena"];
             if (!string.IsNullOrEmpty(usuario))
             {
-                                _sesion.firmaUsuarioParams(usuario, contrasena);
+                _sesion.firmaUsuarioParams(usuario, contrasena);
             }
             else
             {
                 _sesion.firmaUsuario();
             }
+            
+            if (_sesion.ingresoUsuario == 0)
+            {
+                string error = _sesion.UltimoMsjError;
+                throw new Exception($"Fallo al iniciar sesion en CONTPAQi: {error}. Verifica usuario y contrasena en appsettings.json");
+            }
+            
             _log.LogInformation("Sesión CONTPAQi iniciada.");
         }
     }
