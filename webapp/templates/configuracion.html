@@ -25,8 +25,8 @@
           <option value="">-- No enlazada a CONTPAQi --</option>
           {% if empresas_bridge %}
             {% for eb in empresas_bridge %}
-              <option value="{{ eb.base_datos }}" {% if empresa.base_datos_contpaqi == eb.base_datos %}selected{% endif %}>
-                {{ eb.nombre }} ({{ eb.base_datos }})
+              <option value="{{ eb.baseDatos }}" {% if empresa.base_datos_contpaqi == eb.baseDatos %}selected{% endif %}>
+                {{ eb.nombre }} ({{ eb.baseDatos }})
               </option>
             {% endfor %}
           {% elif empresa.base_datos_contpaqi %}
